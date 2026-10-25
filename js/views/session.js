@@ -10,6 +10,7 @@ import { rulesetToMd } from '../export.js';
 import { sceneById, outLinks, sceneStatus, ensureFlowState, hasFlow, lockReason } from '../flow.js';
 import { reqControls, giveItem } from './reqs.js';
 import { imageStrip } from '../images.js';
+import * as live from '../live.js';
 import { playFlow } from './flowplay.js';
 
 const TABS = [
@@ -18,6 +19,7 @@ const TABS = [
   ['dice', '🎲 Würfel'],
   ['players', '👥 Spieler'],
   ['items', '🎒 Inventar'],
+  ['tablets', '📱 Tablets'],
   ['world', '🗺️ NSCs & Orte'],
   ['rules', '📜 Regeln'],
   ['log', '📝 Protokoll'],
@@ -40,11 +42,19 @@ export async function render(main, [id, tabParam], ctx) {
   const tab = TABS.some((t) => t[0] === tabParam) ? tabParam : 'scene';
   ctx.setTitle(`${ses.adventureTitle || adv.title} · ${ses.name}`);
 
-  const saveSes = async () => { await saveItem('sessions', ses); };
+  const saveSes = async () => { await saveItem('sessions', ses); live.liveNotify(adv, ses); };
   const saveAdv = async () => { await saveItem('adventures', adv); };
   const saveSesDebounced = debounce(saveSes, 400);
   const addLog = (text, kind = 'note') => { ses.log.push({ id: uid('log'), t: new Date().toISOString(), text, kind }); };
   ensureFlowState(ses);
+
+  // Live-Verbindung zu den Spieler-Tablets (nur wenn für diese Sitzung zugeschaltet)
+  const liveUi = { onPlayers: null };
+  const liveHooks = {
+    onPlayers: (m) => { if (liveUi.onPlayers) liveUi.onPlayers(m); },
+    onNotes: () => { saveItem('sessions', ses); },
+  };
+  if (ses.room && ses.room.on && live.getConfig()) live.startLive(adv, ses, liveHooks).catch((e) => console.warn('Live:', e));
 
   /** Szene betreten. Gesperrte Szenen nur nach Rückfrage (dann gilt sie als vom Spielleiter freigegeben). */
   const enterScene = async (id) => {
@@ -291,7 +301,7 @@ export async function render(main, [id, tabParam], ctx) {
           },
         }, 'Alle Vorräte auffüllen') : null));
       if (!resDefs.length) panel.appendChild(h('p', { class: 'muted' }, 'Das Regelwerk definiert noch keine Vorräte (z. B. Lebenspunkte). Sobald es welche gibt, erscheinen hier Zähler.'));
-      panel.appendChild(h('p', { class: 'muted small' }, 'Spieler-Tablets mit eigenem Charakterbogen folgen in Phase 2. Das Feld „Charakter“ wird dafür schon mitgeführt.'));
+      panel.appendChild(h('p', { class: 'muted small' }, 'Name, Charakter, Werte, Vorräte, Zustände, Fertigkeiten und Gegenstände sehen die Spieler auf ihrem Tablet (Tab „📱 Tablets“). Das untere Notizfeld ist nur für dich.'));
 
       for (const p of ses.players) {
         const nameIn = h('input', { type: 'text', value: p.name, placeholder: 'Spielername' });
@@ -327,10 +337,21 @@ export async function render(main, [id, tabParam], ctx) {
               },
             }, '⚙'));
         });
+        const attrDefs = adv.ruleset?.attributes || [];
+        p.attrs = p.attrs || {};
+        const attrEls = attrDefs.map((a) => {
+          const inp = h('input', { type: 'number', class: 'tiny', value: p.attrs[a.key] ?? '', 'aria-label': `${a.name} von ${p.name}`, min: a.min, max: a.max });
+          inp.addEventListener('input', () => { p.attrs[a.key] = inp.value === '' ? '' : Number(inp.value); saveSesDebounced(); });
+          return h('label', { class: 'attr' }, h('span', { class: 'small' }, a.name), inp);
+        });
+        const skillsIn = h('textarea', { rows: 2, placeholder: 'Fertigkeiten, Zauber, Ausrüstung (für den Spieler sichtbar)' }, p.skillsText || '');
+        skillsIn.addEventListener('input', () => { p.skillsText = skillsIn.value; saveSesDebounced(); });
+        noteIn.placeholder = 'GM-Notizen zu diesem Spieler (nur für dich, nie auf dem Tablet)';
         const card = h('div', { class: 'card player' },
           h('div', { class: 'row gap' }, nameIn, charIn),
+          attrEls.length ? h('div', { class: 'attr-list' }, attrEls) : null,
           resEls.length ? h('div', { class: 'res-list' }, resEls) : null,
-          condIn, noteIn,
+          condIn, skillsIn, noteIn,
           h('div', { class: 'row end' }, h('button', {
             class: 'btn small danger',
             onclick: async () => {
@@ -385,6 +406,69 @@ export async function render(main, [id, tabParam], ctx) {
     };
     draw();
     return;
+  }
+
+  // ---------------------------------------------------------------- Tablets
+  if (tab === 'tablets') {
+    const cfg = live.getConfig();
+    let claims = {};
+    const draw = () => {
+      clear(panel);
+      if (!cfg) {
+        panel.appendChild(h('div', { class: 'card' },
+          h('h3', {}, '📱 Spieler-Tablets'),
+          h('p', {}, 'Jeder Spieler kann sein eigenes Tablet mit dem Charakterbogen nutzen. Dafür braucht die App einmalig eine Live-Verbindung (Firebase, kostenlos).'),
+          h('p', {}, h('a', { class: 'btn primary', href: '#/settings' }, 'Live-Verbindung einrichten'), ' ', h('a', { class: 'btn', href: '#/help' }, 'Anleitung'))));
+        return;
+      }
+      if (!ses.room || !ses.room.on) {
+        panel.appendChild(h('div', { class: 'card' },
+          h('h3', {}, '📱 Spieler-Tablets'),
+          h('p', {}, 'Optional zuschaltbar. Die Tablets zeigen dann live den Charakterbogen jedes Spielers. GM-Inhalte (Notizen, Geheimnisse, Szenen) werden nie übertragen.'),
+          h('button', {
+            class: 'btn primary', type: 'button', 'data-act': 'tablets-on',
+            onclick: async () => {
+              ses.room = { on: true, code: live.newRoomCode(), createdAt: Date.now() };
+              await saveSes();
+              try { await live.startLive(adv, ses, liveHooks); } catch (e) { toast(`Verbindung fehlgeschlagen: ${e.message}`, 'err', 6000); ses.room = null; await saveItem('sessions', ses); }
+              draw();
+            },
+          }, 'Tablets zuschalten')));
+        return;
+      }
+      const code = ses.room.code;
+      const copy = async (text, msg) => { await copyText(text); toast(msg, 'ok', 2200); };
+      panel.appendChild(h('div', { class: 'card' },
+        h('h3', {}, '📱 Spieler-Tablets sind zugeschaltet'),
+        h('p', { class: 'muted small' }, `Raumcode: ${live.prettyCode(code)} (geheim halten – wer ihn kennt, sieht die Charakterbögen).`),
+        h('div', { class: 'row gap wrap' },
+          h('button', { class: 'btn', type: 'button', 'data-act': 'copy-pick', onclick: () => copy(live.roomLink(code), 'Link kopiert: Das Tablet wählt den Spieler selbst') }, '🔗 Auswahl-Link kopieren'),
+          h('button', {
+            class: 'btn danger', type: 'button', 'data-act': 'tablets-off',
+            onclick: async () => {
+              if (!(await confirmDialog('Tablets abschalten? Alle Daten dieser Sitzung werden aus Firebase gelöscht, die Tablets verlieren ihre Zuordnung.', { okText: 'Abschalten', danger: true }))) return;
+              try { const api = await live.startLive(adv, ses, liveHooks); await api.close(); } catch (e) { console.warn(e); }
+              ses.room = null; await saveSes(); draw();
+            },
+          }, 'Tablets abschalten')),
+        h('p', { class: 'muted small' }, 'Jedes Tablet öffnet den Link und tippt auf seinen Namen, oder du schickst jedem Spieler seinen eigenen Link (🔗 pro Zeile).')));
+      if (!ses.players.length) panel.appendChild(h('div', { class: 'empty' }, 'Noch keine Spieler. Lege sie im Tab „👥 Spieler“ an.'));
+      for (const p of ses.players) {
+        const c = (claims[p.id] || {}).claim;
+        panel.appendChild(h('div', { class: 'card row gap wrap tabletrow', 'data-pid': p.id },
+          h('div', { class: 'grow' }, h('strong', {}, p.name || 'Spieler'), p.character ? h('span', { class: 'muted small block' }, p.character) : null),
+          h('span', { class: `chip ${c ? 'ok' : ''}`, 'data-claim': c ? 'yes' : 'no' }, c ? `📱 ${c.name || 'Tablet'} verbunden` : '○ noch kein Tablet'),
+          h('button', { class: 'btn small', type: 'button', 'data-act': 'copy-player', onclick: () => copy(live.roomLink(code, p.id), `Link für ${p.name} kopiert`) }, '🔗 Link'),
+          c ? h('button', {
+            class: 'btn small', type: 'button', 'data-act': 'release',
+            onclick: async () => { try { const api = await live.startLive(adv, ses, liveHooks); await api.release(p.id); } catch (e) { toast(e.message, 'err'); } },
+          }, 'Freigeben') : null));
+      }
+    };
+    liveUi.onPlayers = (m) => { claims = m; if (panel.isConnected) draw(); };
+    draw();
+    if (ses.room && ses.room.on && cfg) live.startLive(adv, ses, liveHooks).then((api) => { claims = api.claims(); draw(); }).catch((e) => toast(`Live-Verbindung: ${e.message}`, 'err', 6000));
+    return () => { liveUi.onPlayers = null; };
   }
 
   if (tab === 'world') {

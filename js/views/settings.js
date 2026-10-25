@@ -1,5 +1,6 @@
 // Einstellungen: Claude, Dropbox, Daten, Version.
 import { h, clear, toast, confirmDialog, copyText, downloadText } from '../util.js';
+import * as live from '../live.js';
 import {
   getSettings, saveSettings, exportAll, importAll, clearAllData,
 } from '../store.js';
@@ -116,6 +117,46 @@ export async function render(main, _p, ctx) {
   };
   drawDbx();
   root.appendChild(dbxBox);
+
+  // ---- Live-Verbindung (Firebase) für Spieler-Tablets
+  const fbBox = h('div', { class: 'card', 'data-box': 'firebase' });
+  const drawFb = () => {
+    clear(fbBox);
+    const cfg = live.getConfig();
+    const ta = h('textarea', { rows: 6, placeholder: 'Hier die Konfiguration aus der Firebase-Konsole einfügen, z. B.\nconst firebaseConfig = {\n  apiKey: "…",\n  projectId: "…", …\n};', spellcheck: false, 'aria-label': 'Firebase-Konfiguration' });
+    const status = h('div', { class: 'muted small' }, cfg ? `Verbunden mit Projekt „${cfg.projectId}“.` : 'Noch nicht eingerichtet.');
+    fbBox.append(
+      h('h3', {}, '📱 Live-Verbindung (Firebase)'),
+      h('p', { class: 'muted small' }, 'Nur nötig für Spieler-Tablets. Es werden ausschließlich Daten übertragen, die Spieler sehen dürfen (Charakterbogen). Einrichtung Schritt für Schritt: siehe Anleitung, Abschnitt „Firebase einrichten“.'),
+      status,
+      h('label', { class: 'field' }, h('span', {}, cfg ? 'Konfiguration ersetzen' : 'Firebase-Konfiguration'), ta),
+      h('div', { class: 'row gap wrap' },
+        h('button', {
+          class: 'btn primary', type: 'button', 'data-act': 'fb-save',
+          onclick: async () => {
+            const parsed = live.parseConfig(ta.value);
+            if (!parsed) { toast('Das sieht nicht nach der Firebase-Konfiguration aus (apiKey und projectId fehlen).', 'err', 5000); return; }
+            live.setConfig(parsed);
+            toast('Gespeichert. Teste jetzt die Verbindung …', 'ok');
+            drawFb();
+          },
+        }, 'Speichern'),
+        cfg ? h('button', {
+          class: 'btn', type: 'button', 'data-act': 'fb-test',
+          onclick: async (e) => {
+            e.target.disabled = true; status.textContent = 'Teste …';
+            try { await live.testConnection(); status.textContent = '✔ Verbindung funktioniert (schreiben, lesen, löschen).'; }
+            catch (err) { status.textContent = `⚠ ${err.message || err}`; }
+            e.target.disabled = false;
+          },
+        }, 'Verbindung testen') : null,
+        cfg ? h('button', {
+          class: 'btn', type: 'button',
+          onclick: async () => { if (await confirmDialog('Firebase-Konfiguration auf diesem Gerät entfernen?', { okText: 'Entfernen' })) { live.setConfig(null); drawFb(); } },
+        }, 'Entfernen') : null));
+  };
+  drawFb();
+  root.appendChild(fbBox);
 
   // ---- Daten
   const fileIn = h('input', { type: 'file', accept: '.json,application/json', class: 'hidden' });

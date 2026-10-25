@@ -70,7 +70,7 @@ export function newPlayer(adv, name) {
     const max = Number(r.max) || 0;
     resources[r.key] = { value: max, max };
   }
-  return { id: uid('pl'), name, character: '', resources, conditions: '', notes: '', tablet: null };
+  return { id: uid('pl'), name, character: '', resources, conditions: '', notes: '', attrs: {}, skillsText: '', playerNotes: '', tablet: null };
 }
 
 export function progress(adv) {

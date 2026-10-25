@@ -27,6 +27,8 @@ js/sync.js            Abgleich lokal ↔ Dropbox
 js/dice.js            Würfelausdrücke
 js/flow.js            Handlungs-Flowchart (Logik, Anordnung, SVG)
 js/images.js          Karten/Bilder (Verkleinern, lokale Ablage, Anzeige)
+js/live.js            Firebase-Live-Verbindung (nur Spielerdaten) für Tablets
+js/views/play.js      Spieler-Tablet (Charakterbogen live)
 js/export.js          Regelwerk/Abenteuer als Markdown
 js/views/*.js         Bildschirme (Start, Werkstatt, Sitzung, Einstellungen, Hilfe)
 sw.js, manifest.webmanifest, icons/   PWA

@@ -9,6 +9,7 @@ const routes = [
   [/^#\/?$/, () => import('./views/home.js')],
   [/^#\/adventure\/([^/]+)(?:\/(\w+))?$/, () => import('./views/workshop.js')],
   [/^#\/session\/([^/]+)(?:\/(\w+))?$/, () => import('./views/session.js')],
+  [/^#\/play\/([\w-]+)(?:\/([\w-]+))?(?:\/([\w-]+))?$/, () => import('./views/play.js')],
   [/^#\/settings$/, () => import('./views/settings.js')],
   [/^#\/help(?:\/(\w+))?$/, () => import('./views/help.js')],
 ];

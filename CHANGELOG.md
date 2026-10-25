@@ -2,6 +2,25 @@
 
 Jede Änderung an der App wird hier festgehalten. Die aktuelle Version steht unten auf der Startseite und unter Einstellungen → App.
 
+## [0.4.0] – 2026-10-25 · Phase 2: Spieler-Tablets
+
+### Neu
+- **Spieler-Tablets (zuschaltbar):** Jeder Spieler sieht auf seinem Tablet live den eigenen Charakterbogen: Name, Charakter, Grundwerte, Vorräte als Balken, Zustände, Fertigkeiten/Ausrüstung, eigene Gegenstände und Gruppen-Gegenstände. Große, gut lesbare Darstellung; der Bildschirm bleibt wach.
+- **Zuordnung Tablet ↔ Spieler:** über einen gemeinsamen Auswahl-Link (Tablet tippt den eigenen Namen an) oder einen persönlichen Link pro Spieler. Das Tablet merkt sich die Zuordnung. Der Spielleiter sieht, welcher Spieler ein Tablet hat, und kann Tablets freigeben; Tablets können sich auch selbst lösen.
+- **Neuer Spielleiter-Tab „📱 Tablets“** zum Zuschalten, Verteilen der Links und Abschalten (löscht alle Daten dieser Sitzung aus Firebase).
+- **Spieler-Tab erweitert:** Eingabefelder für die Grundwerte des Regelwerks und ein Feld „Fertigkeiten/Ausrüstung“ (für Spieler sichtbar). Das Notizfeld ist klar als „nur für dich“ gekennzeichnet.
+- **Spielernotizen:** Spieler können auf dem Tablet eigene Notizen schreiben; sie kommen automatisch zum Spielleiter.
+- **Einstellungen → „📱 Live-Verbindung (Firebase)“:** Konfiguration einfügen und Verbindung testen. Schritt-für-Schritt-Anleitung in der Admin-Anleitung (Abschnitt C2).
+- **Datenschutz-Prinzip:** Nach Firebase gelangt ausschließlich eine feste Auswahl von Spielerdaten. GM-Notizen, Geheimnisse, Szenen, Regeln des Spielleiters und Protokoll werden nie übertragen. Der Raum ist durch einen zufälligen 12-stelligen Code geschützt.
+
+### Geändert
+- Dropbox bleibt unverändert die Ablage für Abenteuer, Sitzungen und Karten. Firebase ist optional; ohne Konfiguration verhält sich die App wie bisher.
+
+### Bekannte Einschränkungen
+- Spieler können nur ihre Notizen ändern. Würfeln, Lebenspunkte abziehen o. Ä. am Tablet sowie Töne/Effekte sind noch nicht umgesetzt (bewusst zurückgestellt).
+- Wer den Raumcode/Link kennt, sieht die Bögen dieser Sitzung (kein Konto-Login). Links nur an Mitspieler geben und nach dem Spiel abschalten.
+- Das Spielbrett-Tablet (Tischmitte) folgt als nächste Version.
+
 ## [0.3.0] – 2026-10-25 · Bedingungen mit Gegenständen und Würfen
 
 ### Neu

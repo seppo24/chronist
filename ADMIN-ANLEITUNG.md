@@ -51,6 +51,37 @@ Gut zu wissen:
 
 Auf jedem weiteren Gerät: App-Key eintragen und „Mit Dropbox verbinden“ (mit demselben Dropbox-Konto). Danach **Jetzt synchronisieren**.
 
+### C2) Firebase einrichten (nur für Spieler-Tablets, einmalig, ca. 10 Minuten)
+
+Firebase ist der kostenlose Live-Dienst von Google. Es braucht **keine Kreditkarte** (Tarif „Spark“). Ein Google-Konto genügt. Nach Firebase wandern **nur Daten, die Spieler sehen dürfen** (Charakterbogen). GM-Notizen, Geheimnisse, Szenen und Protokoll bleiben auf deinen Geräten und in Dropbox.
+
+1. Öffne <https://console.firebase.google.com> und melde dich an → **Projekt erstellen** (oder „Projekt hinzufügen“) → Name z. B. `chronist` → Google Analytics **ausschalten** → **Projekt erstellen**.
+2. Links **Build → Firestore Database** (oder „Datenbank“) → **Datenbank erstellen** → Standort `eur3 (europe-west)` → **Im Produktionsmodus starten** → **Erstellen**.
+3. Oben den Reiter **Regeln** öffnen, den gesamten Text durch diesen ersetzen und **Veröffentlichen** klicken:
+
+```
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /rooms/{room} {
+      allow get, create, update, delete: if true;
+      allow list: if false;
+      match /players/{player} {
+        allow read, write: if true;
+      }
+    }
+  }
+}
+```
+
+4. Oben links neben „Projektübersicht“ das Zahnrad → **Projekteinstellungen** → Reiter **Allgemein** → ganz unten bei „Meine Apps“ das Web-Symbol **`</>`** → Name `chronist` → **App registrieren** (Haken bei „Firebase Hosting“ **nicht** setzen) → es erscheint ein Kasten mit `const firebaseConfig = { … };`. Diesen Block kopieren.
+5. In der Chronist-App: **⚙️ Einstellungen → 📱 Live-Verbindung (Firebase)** → Block einfügen → **Speichern** → **Verbindung testen**. Es muss „✔ Verbindung funktioniert“ erscheinen.
+
+Gut zu wissen:
+- Die Konfiguration ist **kein Passwort**; sie steckt auch in den Links, die du an die Tablets schickst. Geschützt sind die Daten durch den **zufälligen 12-stelligen Raumcode**: Ohne ihn gibt es keinen Zugriff, auch nicht auf eine Liste aller Räume. Wer den Code oder einen Link hat, sieht die Charakterbögen dieser Sitzung und kann die Spielernotizen ändern. Gib Links nur an Mitspieler und schalte die Tablets nach dem Spielabend ab (löscht alles in Firebase).
+- Gratis-Kontingent pro Tag: 50.000 Lesevorgänge und 20.000 Schreibvorgänge. Ein Spielabend mit 6 Tablets verbraucht davon nur einen kleinen Bruchteil. Wird es je knapp, wird nichts automatisch kostenpflichtig, solange du im Tarif „Spark“ bleibst.
+- Das Firebase-Konto gehört dir. Du kannst das Projekt jederzeit in den Projekteinstellungen löschen.
+
 ### D) Als App installieren
 - **Meldung „bereits installiert“ / „Jetzt öffnen“ → Fehler:** Erst auf Version 0.2.1 oder neuer aktualisieren und die Seite einmal neu laden (ggf. Cache leeren). Hilft das nicht: Chrome-Menü ⋮ → „Zum Startbildschirm hinzufügen“ → „Verknüpfung erstellen“. Unter `chrome://webapks` siehst du, welche Apps Chrome als installiert kennt. Vorsicht: „Websitedaten löschen“ gilt für das ganze `seppo24.github.io` und betrifft auch andere Apps dort.
 
@@ -112,12 +143,27 @@ Am Spielabend:
 - Ein gelungener Wurf bleibt gültig. Mit **Nochmal würfeln** oder **Zurücksetzen** änderst du das. Alle Würfe landen im Protokoll.
 - **🔓 Freischalten** und „Trotzdem wechseln“ umgehen auch diese Bedingungen: Du bleibst Herr des Spiels.
 
+### 3c · Spieler-Tablets (neu in 0.4.0)
+
+Voraussetzung: Firebase ist eingerichtet (Abschnitt C2). Jedes Tablet braucht nur Chrome, keinen API-Key und keinen Dropbox-Zugang.
+1. **Werte pflegen:** Im Spielleiter-Modus, Tab **👥 Spieler**, trägst du pro Spieler Name, Charakter, die **Grundwerte** des Regelwerks, Vorräte, Zustände und **Fertigkeiten/Ausrüstung** ein. Das alles sehen die Spieler später. Das untere Feld **GM-Notizen** ist nur für dich und wird nie übertragen.
+2. **Zuschalten:** Tab **📱 Tablets** → **Tablets zuschalten**. Die Sitzung bekommt einen geheimen Raumcode.
+3. **Zuordnen (welches Tablet gehört wem):**
+   - *Variante 1:* **🔗 Auswahl-Link kopieren** und an die Tablets schicken (z. B. per Messenger). Auf dem Tablet öffnen, den eigenen Namen antippen. Das Tablet merkt sich die Zuordnung auch nach dem Schließen.
+   - *Variante 2:* Pro Spieler **🔗 Link** kopieren und genau diesem Spieler schicken. Der Link öffnet direkt den eigenen Bogen.
+   In der Liste siehst du, welcher Spieler schon ein Tablet hat („📱 Tablet verbunden“). **Freigeben** löst ein Tablet; es fragt dann neu nach dem Namen.
+4. **Während des Spiels:** Änderst du Lebenspunkte, Werte, Zustände oder verteilst Gegenstände (Tab 🎒 Inventar, „Besitzer“), erscheint das nach wenigen Sekunden auf dem Tablet. Das Tablet zeigt auch die Gruppen-Gegenstände. Spieler können nur ihr Feld **Meine Notizen** bearbeiten; du erhältst es automatisch (im Spieler-Datensatz der Sitzung).
+5. **Beenden:** **Tablets abschalten** löscht alle Daten dieser Sitzung aus Firebase.
+
+Tipps: Die Seite hält den Bildschirm auf Tablets wach (wenn der Browser es erlaubt). Kein Wlan am Tisch? Dann geht es auch mit mobilen Daten, nur die Verbindung muss bestehen.
+
 ### Spielleiter-Modus (Spielabend)
 Tabs oben:
 - **🎬 Szene:** aktuelle Szene mit Vorlesetext (goldener Kasten, mit Kopieren-Knopf) und GM-Notizen (rötlich, nur für dich). Mit ◀ ▶ oder der Liste (oder über „Wie geht es weiter?“) die Szene wechseln; „Als erledigt markieren“ hakt ab. Antippbare Chips öffnen NSCs/Orte der Szene. Der Kasten **➡️ Wie geht es weiter?** zeigt die möglichen Wege aus dem Flowchart; gesperrte sind mit 🔒 und dem Stand („1/3 Vorgänger besucht“) markiert. Karten der Szene erscheinen darunter.
 - **🔀 Weg:** Das Flowchart mit Spielstand: ▶ aktuell (gold), ✔ besucht (grün), frei (violett umrandet), 🔒 gesperrt (gestrichelt, mit Zähler). Knoten antippen zeigt Details, fehlende Orte und Karten. **▶ Hierhin wechseln** wechselt die Szene; bei gesperrten Szenen fragt die App vorher nach (du kannst trotzdem wechseln). **🔓 Freischalten** öffnet einen gesperrten Knoten dauerhaft für diese Sitzung, ohne dort hinzuwechseln.
 - **🎲 Würfel:** W4 bis W100, eigene Ausdrücke (`2W6+3`, `d20`, `4d6kh3` = die drei höchsten von vier W6, `2d20kl1` = der niedrigere von zwei W20). Der „Hauptwurf des Regelwerks“-Knopf nutzt den Standardwurf deines Regelwerks.
 - **🎒 Inventar:** Gruppen-Inventar (siehe 3b).
+- **📱 Tablets:** Spieler-Tablets zuschalten und zuordnen (siehe 3c).
 - **👥 Spieler:** Spieler anlegen/umbenennen, Zähler für Vorräte (− / +), Zustände, Notizen. „Alle Vorräte auffüllen“ für Rasten. Die Zahl der Spieler ist frei änderbar.
 - **🗺️ NSCs & Orte:** durchsuchbares Nachschlagewerk.
 - **📜 Regeln:** Regelübersicht zum Nachsehen am Tisch.
@@ -159,6 +205,9 @@ Deine Abenteuer bleiben bei Updates erhalten (sie liegen nicht in den Programmda
 | Karte fehlt auf dem zweiten Gerät („noch nicht synchronisiert“) | Auf beiden Geräten ☁ antippen. Bilder kommen beim Abgleich nach den Abenteuern. Dropbox-Freigabe `files.content.write` muss gesetzt sein. |
 | Bild lässt sich nicht hinzufügen („kein lesbares Bild“) | Anderes Format wählen (JPG, PNG, WebP funktionieren; HEIC nicht überall). |
 | Diagramm ist sehr klein oder wirkt leer | **⤢ Einpassen** antippen oder **🧭 Anordnen**. |
+| Tablet: „Keine Verbindung“ / Verbindungstest schlägt fehl | Firestore-Datenbank wurde nicht angelegt (Schritt C2.2) oder die Regeln fehlen/wurden nicht veröffentlicht (C2.3). Meldung „permission-denied“ = Regeln prüfen. |
+| Tablet: „Spielraum nicht gefunden“ | Link stammt aus einer abgeschalteten Sitzung. Neuen Link kopieren (Tab 📱 Tablets). |
+| Tablet zeigt alte Werte | Internetverbindung des Tablets prüfen; Seite neu laden. Der Spielleiter-Rechner muss die Sitzung geöffnet haben (er sendet die Änderungen). |
 | App zeigt noch alte Version | Einstellungen → „Update erzwingen (Cache leeren)“. |
 | Etwas anderes ist kaputt | Notiere die Testnummer aus der Checkliste, beschreibe kurz, was du getan hast, und schick es mir (gerne mit Screenshot). |
 
@@ -175,6 +224,6 @@ Bekannte Eigenheit: Wird dieselbe Sitzung auf zwei Geräten gleichzeitig bearbei
 | `ADMIN-ANLEITUNG.md` | Diese Anleitung |
 | `README.md` | Kurzbeschreibung des Projekts |
 
-## 8 · Ausblick (Phase 2)
+## 8 · Ausblick
 
-Geplant sind Spieler-Tablets mit eigenem Charakterbogen (Zuordnung Tablet ↔ Spieler) und ein Spielbrett-Tablet in der Tischmitte (zeigt u. a. die Karten, die du an die Knoten gehängt hast), jeweils zuschaltbar und vom Spielleiter gesteuert. Dafür kommt **Firebase** für die Live-Daten dazu; Dropbox bleibt für Backups und große Dateien. Beim Start von Phase 2 führe ich dich durch die Einrichtung.
+Spieler-Tablets gibt es seit 0.4.0. Als Nächstes geplant: das **Spielbrett-Tablet** in der Tischmitte (zeigt die Karten, die du an die Knoten gehängt hast, vom Spielleiter gesteuert, ohne GM-Inhalte), danach Charaktererschaffung am Tablet. Dropbox bleibt für Backups und große Dateien.

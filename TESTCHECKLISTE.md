@@ -8,7 +8,7 @@ Empfehlung: Alles einmal am **Windows-PC** und die mit 📱 markierten Punkte zu
 
 - [ ] **T01** Die Seite öffnet sich über die GitHub-Pages-Adresse ohne Fehlermeldung, oben steht „Chronist“.
 - [ ] **T02** 📱 Die App lässt sich installieren (Chrome-Menü → App installieren) und startet danach als eigenes Fenster/Symbol.
-- [ ] **T03** Unten (Startseite) steht die Versionsnummer 0.3.0, und unter Einstellungen → App steht dieselbe.
+- [ ] **T03** Unten (Startseite) steht die Versionsnummer 0.4.0, und unter Einstellungen → App steht dieselbe.
 - [ ] **T04** 📱 Das Layout passt auf das Handy: kein seitliches Verrutschen, Schaltflächen gut antippbar.
 - [ ] **T05** Ohne API-Key erscheint auf der Startseite der Hinweis „Für die Entwicklung … fehlt noch dein API-Key“.
 
@@ -135,6 +135,32 @@ Vorbereitung: Abenteuer mit Dorf → Kirche → Krypta und Dorf → Turm. Per Ch
 - [ ] **T102** GM-Assistent: „Was braucht die Gruppe für die Krypta?“ → Antwort nennt den Schlüssel und das Inventar.
 - [ ] **T103** 📱 Handy: Bedingungszeilen mit Würfeln-/Eintragen-Knöpfen sind bedienbar, nichts ragt über den Rand.
 - [ ] **T104** Mit Dropbox: Inventar und Würfe erscheinen nach „Jetzt synchronisieren“ auf dem zweiten Gerät.
+
+## K · Spieler-Tablets (neu in 0.4.0)
+
+Vorbereitung: Firebase einrichten (Admin-Anleitung C2). Du brauchst mindestens ein zweites Gerät (Tablet oder zweites Handy/Browserfenster).
+
+- [ ] **T105** Einstellungen → „📱 Live-Verbindung“: Konfiguration einfügen, speichern. „Verbindung testen“ zeigt „✔ Verbindung funktioniert“. Unsinn einfügen wird abgelehnt.
+- [ ] **T106** Vor der Einrichtung zeigt der Tab „📱 Tablets“ einen Hinweis mit Weg zu den Einstellungen.
+- [ ] **T107** Tab „👥 Spieler“: Grundwerte, Charakter, Zustände und Fertigkeiten eintragen; das Notizfeld trägt den Hinweis „nur für dich“.
+- [ ] **T108** Tab „📱 Tablets“ → „Tablets zuschalten“: Raumcode erscheint, jede Spielerin/jeder Spieler hat eine Zeile.
+- [ ] **T109** „🔗 Auswahl-Link kopieren“, auf dem zweiten Gerät öffnen: Liste der Spielernamen erscheint. Keine Menüs/Einstellungen sichtbar.
+- [ ] **T110** Eigenen Namen antippen: Der Charakterbogen erscheint mit den eingetragenen Werten, Balken für Vorräte, Zuständen, Fertigkeiten.
+- [ ] **T111** Auf dem Spielleiter-Gerät steht bei diesem Spieler „📱 … verbunden“.
+- [ ] **T112** Lebenspunkte beim Spielleiter ändern: Nach wenigen Sekunden ändert sich der Balken auf dem Tablet.
+- [ ] **T113** Gegenstand im Tab „🎒 Inventar“ einem Spieler zuordnen: Er erscheint auf dem Tablet unter „Gegenstände“. Gruppen-Gegenstände stehen als „👥“.
+- [ ] **T114** 🔒 Nirgends auf dem Tablet sind GM-Notizen, Geheimnisse, Szenentexte oder das GM-Notizfeld des Spielers zu sehen.
+- [ ] **T115** Auf dem Tablet „Meine Notizen“ schreiben: Sie bleiben beim Neuladen erhalten.
+- [ ] **T116** Tablet schließen und neu öffnen (gleicher Link): Es zeigt sofort wieder den eigenen Bogen.
+- [ ] **T117** „🔗 Link“ pro Spieler: Der Link öffnet direkt den Bogen dieses Spielers.
+- [ ] **T118** „Freigeben“ beim Spielleiter: Das Tablet fragt neu nach dem Namen („Zuordnung wurde aufgehoben“).
+- [ ] **T119** „Tablet-Zuordnung lösen“ am Tablet funktioniert.
+- [ ] **T120** Mehrere Tablets gleichzeitig mit verschiedenen Spielern: Jedes zeigt nur den eigenen Bogen.
+- [ ] **T121** Versuch, einen schon vergebenen Namen zu wählen: Rückfrage „Trotzdem übernehmen?“.
+- [ ] **T122** Spieler hinzufügen/entfernen im Spielleiter-Modus: Die Auswahl auf den Tablets passt sich an.
+- [ ] **T123** „Tablets abschalten“: Alte Links zeigen „Spielraum nicht gefunden“. In der Firebase-Konsole (Firestore Database → Daten) sind die Einträge unter `rooms` weg.
+- [ ] **T124** 📱 Das Tablet bleibt bei längerem Zuschauen wach (Bildschirm geht nicht aus) und ist gut lesbar (Schrift groß genug, auch quer).
+- [ ] **T125** Ohne Firebase-Einrichtung läuft die App für den Spielleiter exakt wie vorher (keine Fehlermeldungen).
 
 ## I · Gefühl & Auffälligkeiten
 
