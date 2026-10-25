@@ -1,7 +1,8 @@
 // Datenmodell des Abenteuers, Werkzeuge für Claude und die Systemprompts.
 import { uid, slugify } from './util.js';
 import { APP_VERSION } from './version.js';
-import { sceneById, incoming, outLinks, unlockRule, hasFlow, sceneStatus, visitedSet, UNLOCK_LABELS } from './flow.js';
+import { sceneById, incoming, outLinks, unlockRule, hasFlow, sceneStatus, visitedSet, UNLOCK_LABELS, reqList, reqText, lockReason } from './flow.js';
+import { parseDice } from './dice.js';
 
 export const SECTIONS = [
   { id: 'konzept', title: 'Konzept & Ton', icon: '💡', hint: 'Grundidee, Stimmung, Vorbilder, Spielstil, Länge.' },
@@ -53,6 +54,8 @@ export function newSession(adv, name) {
     doneScenes: [],
     visited: adv.scenes[0] ? [adv.scenes[0].id] : [],
     forced: [],
+    items: [],
+    rolls: {},
     players,
     log: [],
     chat: [],
@@ -304,6 +307,37 @@ export const WORKSHOP_TOOLS = [
     },
   },
   {
+    name: 'add_scene_requirement',
+    description: 'Fügt einer Szene eine zusätzliche Bedingung hinzu, die zur Freischaltung erfüllt sein muss (neben den Wegen). type=item: Die Gruppe muss einen Gegenstand besitzen (z. B. "Rostiger Schlüssel"). type=roll: Eine Probe muss gelingen (Würfelausdruck wie 1W20 oder 2W6+1, Vergleich ">=" = mindestens oder "<=" = höchstens, Zielwert). Alle Bedingungen einer Szene müssen erfüllt sein. Nutze für Gegenstände immer denselben Namen wie bei grant_items.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        scene_id: { type: 'string', description: 'id der Szene, die die Bedingung bekommt' },
+        type: { type: 'string', enum: ['item', 'roll'] },
+        item: { type: 'string', description: 'Nur type=item: Name des Gegenstands' },
+        label: { type: 'string', description: 'Nur type=roll: Name der Probe, z. B. "Schloss knacken"' },
+        expr: { type: 'string', description: 'Nur type=roll: Würfelausdruck, z. B. 1W20' },
+        cmp: { type: 'string', enum: ['>=', '<='], description: 'Nur type=roll: >= (mindestens) oder <= (höchstens). Standard >=' },
+        target: { type: 'number', description: 'Nur type=roll: Zielwert' },
+      },
+      required: ['scene_id', 'type'],
+    },
+  },
+  {
+    name: 'clear_scene_requirements',
+    description: 'Entfernt alle zusätzlichen Bedingungen (Gegenstände/Würfe) einer Szene.',
+    input_schema: { type: 'object', properties: { scene_id: { type: 'string' } }, required: ['scene_id'] },
+  },
+  {
+    name: 'grant_items',
+    description: 'Legt fest, welche Gegenstände die Gruppe beim ersten Betreten einer Szene erhält (ersetzt die bisherige Liste). Leere Liste = keine.',
+    input_schema: {
+      type: 'object',
+      properties: { scene_id: { type: 'string' }, items: { type: 'array', items: { type: 'string' } } },
+      required: ['scene_id', 'items'],
+    },
+  },
+  {
     name: 'delete_item',
     description: 'Löscht eine Szene, einen NSC oder einen Ort. Nur nach Zustimmung des Nutzers verwenden.',
     input_schema: {
@@ -393,6 +427,40 @@ export function runWorkshopTool(adv, name, input) {
       s.unlock = { mode: input.mode, count: Math.max(1, parseInt(input.count, 10) || 1) };
       return { result: { ok: true }, note: `Freischaltung „${s.name}“: ${UNLOCK_LABELS[input.mode].toLowerCase()}` };
     }
+    case 'add_scene_requirement': {
+      const sc = findScene(adv, input.scene_id);
+      if (!sc) throw new Error(`Szene nicht gefunden: ${input.scene_id}`);
+      sc.requires = sc.requires || [];
+      if (input.type === 'item') {
+        const n = String(input.item || '').trim();
+        if (!n) throw new Error('item (Name des Gegenstands) fehlt');
+        if (sc.requires.some((r) => r.type === 'item' && r.item.toLowerCase() === n.toLowerCase())) return { result: { ok: true, created: false }, note: `Bedingung „${n}“ gab es schon` };
+        sc.requires.push({ id: uid('req'), type: 'item', item: n });
+        return { result: { ok: true, created: true }, note: `„${sc.name}“ verlangt Gegenstand „${n}“` };
+      }
+      if (input.type === 'roll') {
+        const expr = String(input.expr || '').trim();
+        if (!parseDice(expr)) throw new Error(`Ungültiger Würfelausdruck: "${expr}"`);
+        const target = Number(input.target);
+        if (!Number.isFinite(target)) throw new Error('target (Zielwert) fehlt');
+        const r = { id: uid('req'), type: 'roll', label: String(input.label || 'Probe').trim() || 'Probe', expr, cmp: input.cmp === '<=' ? '<=' : '>=', target };
+        sc.requires.push(r);
+        return { result: { ok: true, created: true }, note: `„${sc.name}“ verlangt ${reqText(r)}` };
+      }
+      throw new Error('type muss item oder roll sein');
+    }
+    case 'clear_scene_requirements': {
+      const sc = findScene(adv, input.scene_id);
+      if (!sc) throw new Error(`Szene nicht gefunden: ${input.scene_id}`);
+      sc.requires = [];
+      return { result: { ok: true }, note: `Bedingungen von „${sc.name}“ entfernt` };
+    }
+    case 'grant_items': {
+      const sc = findScene(adv, input.scene_id);
+      if (!sc) throw new Error(`Szene nicht gefunden: ${input.scene_id}`);
+      sc.grants = (Array.isArray(input.items) ? input.items : []).map((x) => String(x).trim()).filter(Boolean);
+      return { result: { ok: true }, note: `„${sc.name}“ vergibt: ${sc.grants.join(', ') || '–'}` };
+    }
     case 'delete_item': {
       const ok = removeItem(adv, input.collection, input.id);
       if (!ok) throw new Error('Eintrag nicht gefunden');
@@ -417,7 +485,9 @@ function flowDump(adv, scene) {
   let rule = '';
   if (preds.length >= 2) rule = r.mode === 'all' ? `erst wenn ALLE Vorgänger besucht sind (${preds.join(', ')})` : r.mode === 'count' ? `sobald mindestens ${r.count} von ${preds.length} Vorgängern besucht sind` : 'sobald ein Vorgänger besucht ist';
   const imgs = (scene.images || []).length;
-  return `\n  - Führt zu: ${outs.join(', ') || '–'}${rule ? `\n  - Freischaltung: ${rule}` : ''}${imgs ? `\n  - Karten/Bilder: ${imgs} hinterlegt (${scene.images.map((i) => i.name).join(', ')})` : ''}`;
+  const rq = reqList(scene).map(reqText);
+  const gr = (scene.grants || []);
+  return `\n  - Führt zu: ${outs.join(', ') || '–'}${rule ? `\n  - Freischaltung: ${rule}` : ''}${rq.length ? `\n  - Zusätzliche Bedingungen (alle nötig): ${rq.join('; ')}` : ''}${gr.length ? `\n  - Gruppe erhält beim Betreten: ${gr.join(', ')}` : ''}${imgs ? `\n  - Karten/Bilder: ${imgs} hinterlegt (${scene.images.map((i) => i.name).join(', ')})` : ''}`;
 }
 
 export function stateDump(adv) {
@@ -452,7 +522,7 @@ ARBEITSWEISE
 - Regeln müssen am Tisch schnell laufen und auf einen Tablet-Charakterbogen passen: wenige Werte (typisch 3–6 Grundwerte), eine klare Standard-Würfelmechanik, wenige zählbare Vorräte, kurze Kampfregeln. Erkläre Regelentscheidungen in 1–2 Sätzen, damit der Nutzer sie nachvollziehen kann.
 - Speichere Ergebnisse mit den Werkzeugen, sobald der Nutzer zugestimmt hat oder dich ausdrücklich auffordert, selbst auszuarbeiten. Ändere gezielt statt alles neu zu schreiben. Bei set_section immer den vollständigen neuen Abschnittstext übergeben. Bestätige nach dem Speichern kurz und schlage den nächsten Schritt vor.
 - Szenen, NSCs und Orte immer mit stabilen ids anlegen (z. B. "szene-03-hoerner-alarm").
-- HANDLUNGSFLUSS: Die Handlung ist ein Flowchart aus Szenen. Lege Szenen zuerst an, verbinde sie dann mit connect_scenes (Pfeil von → nach). Von einer Szene dürfen mehrere Pfeile ausgehen (Verzweigung, z. B. Stadt → Kirche, Taverne, Schmied). Zeigen mehrere Pfeile auf eine Szene, bestimmt set_unlock_rule, wann sie frei wird: all = erst wenn alle Vorgänger besucht wurden (Beispiel: Wald erst nach Kirche, Taverne und Schmied), count = mindestens n, any = sobald einer besucht wurde. Benenne Szenen als Knoten im Ablauf (Orte/Ereignisse), nicht als lange Sätze. Der Nutzer sieht und verschiebt das Ganze im Tab „Handlung“ und kann dort Karten/Bilder an Szenen hängen; erwähne in Szenen, welche Karte sinnvoll wäre.
+- HANDLUNGSFLUSS: Die Handlung ist ein Flowchart aus Szenen. Lege Szenen zuerst an, verbinde sie dann mit connect_scenes (Pfeil von → nach). Von einer Szene dürfen mehrere Pfeile ausgehen (Verzweigung, z. B. Stadt → Kirche, Taverne, Schmied). Zeigen mehrere Pfeile auf eine Szene, bestimmt set_unlock_rule, wann sie frei wird: all = erst wenn alle Vorgänger besucht wurden (Beispiel: Wald erst nach Kirche, Taverne und Schmied), count = mindestens n, any = sobald einer besucht wurde. Benenne Szenen als Knoten im Ablauf (Orte/Ereignisse), nicht als lange Sätze. Zusätzlich kannst du Szenen an Bedingungen knüpfen: add_scene_requirement (Gegenstand besitzen, z. B. Schlüssel für die Krypta; oder Probe bestehen, z. B. Schloss knacken 1W20 ab 12) und grant_items (welche Gegenstände die Gruppe beim ersten Betreten einer Szene erhält). Sorge dafür, dass jeder verlangte Gegenstand irgendwo erreichbar ist (grant_items in einer früher erreichbaren Szene oder Fundort in einer Szene/einem NSC), sonst sitzt die Gruppe fest. Der Nutzer sieht und verschiebt das Ganze im Tab „Handlung“ und kann dort Karten/Bilder an Szenen hängen; erwähne in Szenen, welche Karte sinnvoll wäre.
 - Trenne sauber: Vorlesetexte für Spieler (read_aloud) enthalten nie Geheimnisse. Geheimnisse gehören in GM-Felder (gm_notes, secrets) oder den Abschnitt „geheimnisse“.
 - Schreibe kompakt und gut lesbar auf einem Smartphone: kurze Absätze, Listen nur wenn nötig, keine langen Einleitungen.
 - Wenn etwas im Stand unten schon existiert, baue darauf auf und widersprich dem nicht ohne Grund.
@@ -483,7 +553,7 @@ export function gmSystem(adv, session) {
   const nameOf = (id) => sceneById(adv, id)?.name || id;
   const nexts = scene ? outLinks(adv, scene).map((l) => {
     const st = sceneStatus(adv, session, l.to);
-    return `${nameOf(l.to)} [${l.to}]${l.label ? ` („${l.label}“)` : ''} – ${st.state === 'locked' ? `noch gesperrt (${st.met}/${st.needed} Vorgänger besucht)` : st.state === 'visited' ? 'schon besucht' : 'frei'}`;
+    return `${nameOf(l.to)} [${l.to}]${l.label ? ` („${l.label}“)` : ''} – ${st.state === 'locked' ? `noch gesperrt (${lockReason(adv, st)})` : st.state === 'visited' ? 'schon besucht' : 'frei'}`;
   }) : [];
   const live = [
     '# LAUFENDE SITZUNG',
@@ -491,6 +561,7 @@ export function gmSystem(adv, session) {
     hasFlow(adv) ? `Mögliche nächste Szenen: ${nexts.join('; ') || 'keine (Ende dieses Strangs)'}` : '',
     `Besuchte Szenen: ${[...seen].map(nameOf).join(', ') || '–'}`,
     `Erledigte Szenen: ${session.doneScenes.join(', ') || '–'}`,
+    `Inventar der Gruppe: ${(session.items || []).map((i) => i.name).join(', ') || '–'}`,
     `Spieler:\n${players || '(keine)'}`,
     `Letzte Protokolleinträge:\n${recent || '(leer)'}`,
   ].filter(Boolean).join('\n');

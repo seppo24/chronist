@@ -1,9 +1,10 @@
 // Werkstatt-Tab „Handlung“: Flowchart bearbeiten (Knoten, Wege, Freischaltregeln, Karten).
-import { h, clear, confirmDialog, formDialog, uid } from '../util.js';
+import { h, clear, confirmDialog, formDialog, uid, toast } from '../util.js';
+import { parseDice } from '../dice.js';
 import { upsertItem, removeItem } from '../adventure.js';
 import {
   createFlow, persistMissingPositions, resetLayout, outLinks, incoming, unlockRule, sceneById,
-  freeSpot, positions, gateText, UNLOCK_LABELS, NODE_H, GAP_Y,
+  freeSpot, positions, gateText, UNLOCK_LABELS, NODE_H, GAP_Y, reqList, reqText,
 } from '../flow.js';
 import { imageStrip, removeImage } from '../images.js';
 
@@ -110,6 +111,7 @@ export function flowTab(panel, adv, save) {
     }
     box.appendChild(unlockBox);
 
+    box.appendChild(reqEditor(scene));
     box.appendChild(imageStrip(scene, async () => { await save(); flow.draw(); }, { editable: true }));
 
     box.appendChild(h('div', { class: 'row gap wrap end' },
@@ -125,6 +127,76 @@ export function flowTab(panel, adv, save) {
         },
       }, '🗑 Knoten löschen')));
     return box;
+  }
+
+  const knownItems = () => [...new Set(adv.scenes.flatMap((sc) => [...(sc.grants || []), ...(sc.requires || []).filter((r) => r.type === 'item').map((r) => r.item)]).map((x) => String(x || '').trim()).filter(Boolean))];
+
+  /** Bedingungen (Gegenstand / Wurf) und Gegenstände, die man hier erhält. */
+  function reqEditor(scene) {
+    const wrap = h('div', { class: 'field reqedit' }, h('span', {}, '🔑 Zusätzliche Bedingungen (alle müssen erfüllt sein)'));
+    const list = reqList(scene);
+    if (!list.length) wrap.appendChild(h('div', { class: 'muted small' }, 'Keine. Du kannst verlangen, dass die Gruppe einen Gegenstand besitzt oder eine Probe schafft, bevor die Szene frei wird.'));
+    for (const r of list) {
+      wrap.appendChild(h('div', { class: 'chip linkchip reqchip', 'data-req-chip': r.id },
+        (r.type === 'item' ? '🔑 ' : '🎲 ') + reqText(r),
+        h('button', {
+          class: 'x', type: 'button', 'aria-label': 'Bedingung entfernen',
+          onclick: async () => { scene.requires = scene.requires.filter((x) => x.id !== r.id); await save(); refreshAll(); },
+        }, '×')));
+    }
+    const dl = h('datalist', { id: `items-${scene.id}` }, knownItems().map((n) => h('option', { value: n })));
+    const itemIn = h('input', { type: 'text', list: `items-${scene.id}`, placeholder: 'Gegenstand, z. B. Rostiger Schlüssel', 'aria-label': 'Benötigter Gegenstand' });
+    const rollLabel = h('input', { type: 'text', placeholder: 'Name der Probe, z. B. Schloss knacken', 'aria-label': 'Name der Probe' });
+    const rollExprIn = h('input', { type: 'text', value: adv.ruleset?.dice?.primary || '1W20', class: 'short', 'aria-label': 'Würfelausdruck' });
+    const cmpSel = h('select', { 'aria-label': 'Vergleich' }, h('option', { value: '>=' }, 'mindestens'), h('option', { value: '<=' }, 'höchstens'));
+    const target = h('input', { type: 'number', value: 12, class: 'tiny', 'aria-label': 'Zielwert' });
+    wrap.append(dl,
+      h('div', { class: 'row gap wrap' }, itemIn,
+        h('button', {
+          class: 'btn small', type: 'button', 'data-act': 'add-item-req',
+          onclick: async () => {
+            const n = itemIn.value.trim();
+            if (!n) return;
+            scene.requires = scene.requires || [];
+            scene.requires.push({ id: uid('req'), type: 'item', item: n });
+            await save(); refreshAll();
+          },
+        }, '＋ Gegenstand verlangen')),
+      h('div', { class: 'row gap wrap' }, rollLabel, rollExprIn, cmpSel, target,
+        h('button', {
+          class: 'btn small', type: 'button', 'data-act': 'add-roll-req',
+          onclick: async () => {
+            const ex = rollExprIn.value.trim();
+            if (!ex || !parseDice(ex)) { toast('Ungültiger Würfelausdruck (z. B. 1W20 oder 2W6+1)', 'err'); return; }
+            const t = parseInt(target.value, 10);
+            if (!Number.isFinite(t)) { toast('Bitte einen Zielwert angeben', 'err'); return; }
+            scene.requires = scene.requires || [];
+            scene.requires.push({ id: uid('req'), type: 'roll', label: rollLabel.value.trim() || 'Probe', expr: ex, cmp: cmpSel.value, target: t });
+            await save(); refreshAll();
+          },
+        }, '＋ Wurf verlangen')));
+
+    // Gegenstände, die man hier erhält
+    const grants = scene.grants || [];
+    const gIn = h('input', { type: 'text', list: `items-${scene.id}`, placeholder: 'z. B. Rostiger Schlüssel', 'aria-label': 'Gegenstand, den man hier erhält' });
+    wrap.append(
+      h('span', { class: 'sub' }, '🎁 Gegenstände, die die Gruppe hier erhält (beim ersten Betreten)'),
+      grants.length ? h('div', { class: 'row gap wrap' }, grants.map((g, i) => h('span', { class: 'chip linkchip', 'data-grant': g }, `🎁 ${g}`,
+        h('button', {
+          class: 'x', type: 'button', 'aria-label': `${g} entfernen`,
+          onclick: async () => { scene.grants = grants.filter((_, j) => j !== i); await save(); refreshAll(); },
+        }, '×')))) : h('div', { class: 'muted small' }, 'Keine.'),
+      h('div', { class: 'row gap wrap' }, gIn,
+        h('button', {
+          class: 'btn small', type: 'button', 'data-act': 'add-grant',
+          onclick: async () => {
+            const n = gIn.value.trim();
+            if (!n) return;
+            scene.grants = [...(scene.grants || []), n];
+            await save(); refreshAll();
+          },
+        }, '＋ Gegenstand vergeben')));
+    return wrap;
   }
 
   function drawDetail() {

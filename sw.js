@@ -1,7 +1,7 @@
 // Service Worker: macht die App installierbar und offline startfähig.
 // Strategie: Netzwerk zuerst (damit Updates sofort ankommen), bei Offline aus dem Cache.
 // Bei jedem Update CACHE_VERSION passend zu js/version.js anheben.
-const CACHE_VERSION = '0.2.1';
+const CACHE_VERSION = '0.3.0';
 const CACHE = `chronist-${CACHE_VERSION}`;
 
 const SHELL = [
@@ -9,7 +9,7 @@ const SHELL = [
   'js/app.js', 'js/version.js', 'js/util.js', 'js/md.js', 'js/store.js', 'js/claude.js',
   'js/dropbox.js', 'js/sync.js', 'js/dice.js', 'js/adventure.js', 'js/chat.js', 'js/export.js',
   'js/views/home.js', 'js/views/workshop.js', 'js/views/session.js', 'js/views/collection.js',
-  'js/views/settings.js', 'js/views/help.js', 'js/views/flowedit.js', 'js/views/flowplay.js',
+  'js/views/settings.js', 'js/views/help.js', 'js/views/flowedit.js', 'js/views/flowplay.js', 'js/views/reqs.js',
   'js/flow.js', 'js/images.js',
   'ADMIN-ANLEITUNG.md', 'TESTCHECKLISTE.md', 'CHANGELOG.md',
   'icons/icon.svg', 'icons/icon-192.png', 'icons/icon-512.png',

@@ -2,6 +2,24 @@
 
 Jede Änderung an der App wird hier festgehalten. Die aktuelle Version steht unten auf der Startseite und unter Einstellungen → App.
 
+## [0.3.0] – 2026-10-25 · Bedingungen mit Gegenständen und Würfen
+
+### Neu
+- **Zusätzliche Bedingungen pro Knoten** (Werkstatt, Tab „🔀 Handlung“, Bereich „🔑 Zusätzliche Bedingungen“): Eine Szene kann verlangen, dass die Gruppe einen **Gegenstand** besitzt (z. B. „Rostiger Schlüssel“) und/oder eine **Probe** gelingt (Würfelausdruck, „mindestens“ oder „höchstens“, Zielwert, z. B. „Schloss knacken: 1W20 mindestens 12“). Alle Bedingungen müssen erfüllt sein, zusätzlich zu den Wegen. Am Knoten steht das Abzeichen „🔑 n“.
+- **Gegenstände vergeben:** Pro Knoten lässt sich festlegen, welche Gegenstände die Gruppe beim **ersten Betreten** erhält („🎁 Gegenstände, die die Gruppe hier erhält“). Namen werden beim Eintippen aus bereits bekannten vorgeschlagen; Groß-/Kleinschreibung ist egal.
+- **Spielleiter-Modus, neuer Tab „🎒 Inventar“:** Gruppen-Inventar mit Hinzufügen, Entfernen und optionaler Zuordnung zu einem Spieler.
+- **Bedingungen im Spiel:** Im Kasten „Wie geht es weiter?“ und im Tab „🔀 Weg“ zeigt jede gesperrte Szene ihre Bedingungen mit Status. Gegenstand fehlt → Knopf „＋ Ins Inventar“. Wurf → „🎲 Würfeln“ (App würfelt und wertet aus) oder Ergebnis von Hand eintragen (am Tisch gewürfelt); „Nochmal würfeln“ und „Zurücksetzen“ sind möglich. Würfe stehen im Protokoll.
+- Die Sperrgründe sind genauer: „1 von 3 Vorgängern besucht“, „Gegenstand ‚Schlüssel‘ fehlt“, „Wurf ‚Schloss knacken‘ nicht geschafft (7)“. „🔓 Freischalten“ und „Trotzdem wechseln“ umgehen auch diese Bedingungen.
+- **Claude:** neue Werkzeuge `add_scene_requirement`, `clear_scene_requirements` und `grant_items`. Claude kennt Bedingungen, Vergaben und das aktuelle Inventar und achtet darauf, dass verlangte Gegenstände erreichbar sind. Export als Textdokument enthält Bedingungen und Vergaben.
+
+### Geändert
+- Ältere Sitzungen und Abenteuer funktionieren unverändert (ohne Bedingungen verhält sich alles wie zuvor).
+
+### Bekannte Einschränkungen
+- Ein Wurf gilt für die ganze Gruppe, nicht pro Spieler. Gegenstände werden nur nach Namen verglichen (keine Mengen).
+- Sperre aufheben durch Würfeln ist auch nach erfolgreichem Wurf dauerhaft; „Zurücksetzen“ nimmt das Ergebnis zurück.
+- Noch keine Spieler-Tablets und kein Spielbrett (Phase 2).
+
 ## [0.2.1] – 2026-10-25 · Installation auf Android
 
 ### Geändert

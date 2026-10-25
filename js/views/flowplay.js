@@ -1,7 +1,8 @@
 // Spielleiter-Tab „Weg“: Flowchart mit Spielstand (aktuell / besucht / frei / gesperrt).
 import { h, clear } from '../util.js';
 import { md } from '../md.js';
-import { createFlow, sceneById, sceneStatus, gateText, hasFlow } from '../flow.js';
+import { createFlow, sceneById, sceneStatus, gateText, hasFlow, lockReason, lockBadge } from '../flow.js';
+import { reqControls } from './reqs.js';
 import { imageStrip } from '../images.js';
 
 const STATE_TEXT = {
@@ -12,7 +13,7 @@ const STATE_TEXT = {
 };
 
 /** enter(id) wechselt die Szene (inkl. Rückfrage bei gesperrten); saveSes() speichert die Sitzung. */
-export function playFlow(panel, adv, ses, { enter, saveSes }) {
+export function playFlow(panel, adv, ses, { enter, saveSes, addLog = () => {} }) {
   if (!adv.scenes.length) {
     panel.appendChild(h('div', { class: 'empty' }, 'Dieses Abenteuer hat noch keine Szenen.'));
     return;
@@ -21,7 +22,7 @@ export function playFlow(panel, adv, ses, { enter, saveSes }) {
 
   const nodeInfo = (s) => {
     const st = sceneStatus(adv, ses, s.id);
-    const badge = { current: '▶', visited: '✔', available: '', locked: `🔒 ${st.met}/${st.needed}` }[st.state];
+    const badge = { current: '▶', visited: '✔', available: '', locked: lockBadge(st) }[st.state];
     return { cls: st.state, badge: badge + ((s.images || []).length ? ' 🗺️' : ''), gate: gateText(adv, s) };
   };
 
@@ -43,11 +44,14 @@ export function playFlow(panel, adv, ses, { enter, saveSes }) {
         sc.act ? h('span', { class: 'chip' }, sc.act) : null,
         st.forced ? h('span', { class: 'chip' }, '🔓 vom Spielleiter freigegeben') : null));
     if (st.state === 'locked') {
-      const names = st.missing.map((id) => sceneById(adv, id)?.name).filter(Boolean);
-      card.appendChild(h('p', { class: 'muted' }, `${st.met} von ${st.needed} nötigen Vorgängern besucht. Es fehlen: ${names.join(', ')}.`));
+      card.appendChild(h('p', { class: 'muted' }, `Gesperrt: ${lockReason(adv, st)}.`));
     }
     if (sc.summary) card.appendChild(h('div', { class: 'md', html: md(sc.summary) }));
     card.appendChild(imageStrip(sc, async () => {}, { editable: false }));
+    if (st.state !== 'current' && st.state !== 'visited') {
+      const rc = reqControls(adv, ses, sc, { saveSes, addLog, onChange: () => { flow.draw(); drawInfo(); } });
+      if (rc) card.appendChild(rc);
+    }
     const row = h('div', { class: 'row gap wrap' });
     if (st.state !== 'current') {
       row.appendChild(h('button', {
@@ -73,7 +77,7 @@ export function playFlow(panel, adv, ses, { enter, saveSes }) {
 
   panel.append(
     h('div', { class: 'flowlegend row gap wrap muted small' },
-      h('span', {}, '▶ aktuell'), h('span', {}, '✔ besucht'), h('span', {}, '○ frei'), h('span', {}, '🔒 gesperrt (x/y Vorgänger)'), h('span', {}, '⛓ Bedingung')),
+      h('span', {}, '▶ aktuell'), h('span', {}, '✔ besucht'), h('span', {}, '○ frei'), h('span', {}, '🔒 gesperrt (x/y Vorgänger)'), h('span', {}, '⛓ Bedingung'), h('span', {}, '🔑 Gegenstand/Wurf nötig')),
     h('div', { class: 'row gap wrap flowbar' },
       h('button', { class: 'btn small', type: 'button', 'aria-label': 'Verkleinern', onclick: () => flow.zoomBy(0.8) }, '−'),
       h('button', { class: 'btn small', type: 'button', 'aria-label': 'Vergrößern', onclick: () => flow.zoomBy(1.25) }, '+'),

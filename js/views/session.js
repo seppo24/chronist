@@ -7,7 +7,8 @@ import { createChat } from '../chat.js';
 import { itemDetails, subtitle } from './collection.js';
 import { rollExpr, describeRoll, parseDice, extremes } from '../dice.js';
 import { rulesetToMd } from '../export.js';
-import { sceneById, outLinks, sceneStatus, ensureFlowState, hasFlow } from '../flow.js';
+import { sceneById, outLinks, sceneStatus, ensureFlowState, hasFlow, lockReason } from '../flow.js';
+import { reqControls, giveItem } from './reqs.js';
 import { imageStrip } from '../images.js';
 import { playFlow } from './flowplay.js';
 
@@ -16,6 +17,7 @@ const TABS = [
   ['flow', '🔀 Weg'],
   ['dice', '🎲 Würfel'],
   ['players', '👥 Spieler'],
+  ['items', '🎒 Inventar'],
   ['world', '🗺️ NSCs & Orte'],
   ['rules', '📜 Regeln'],
   ['log', '📝 Protokoll'],
@@ -50,8 +52,7 @@ export async function render(main, [id, tabParam], ctx) {
     if (!sc) return false;
     const st = sceneStatus(adv, ses, id);
     if (!st.open) {
-      const names = st.missing.map((m) => sceneById(adv, m)?.name).filter(Boolean).join(', ');
-      const ok = await confirmDialog(`„${sc.name}“ ist noch gesperrt (${st.met}/${st.needed} nötige Vorgänger besucht, es fehlen: ${names}). Trotzdem dorthin wechseln?`, { okText: 'Trotzdem wechseln' });
+      const ok = await confirmDialog(`„${sc.name}“ ist noch gesperrt: ${lockReason(adv, st)}. Trotzdem dorthin wechseln?`, { okText: 'Trotzdem wechseln' });
       if (!ok) return false;
       if (!ses.forced.includes(id)) ses.forced.push(id);
     }
@@ -59,7 +60,15 @@ export async function render(main, [id, tabParam], ctx) {
       ses.currentSceneId = id;
       addLog(`Szene: ${sc.name}`, 'scene');
     }
-    if (!ses.visited.includes(id)) ses.visited.push(id);
+    if (!ses.visited.includes(id)) {
+      ses.visited.push(id);
+      for (const g of sc.grants || []) {
+        if (!String(g).trim()) continue;
+        giveItem(ses, g);
+        addLog(`Gegenstand erhalten: ${g} (in „${sc.name}“)`, 'note');
+        toast(`🎒 Erhalten: ${g}`, 'ok');
+      }
+    }
     await saveSes();
     return true;
   };
@@ -181,11 +190,15 @@ export async function render(main, [id, tabParam], ctx) {
         for (const l of nexts) {
           const target = sceneById(adv, l.to);
           const st = sceneStatus(adv, ses, l.to);
-          const info = st.state === 'locked' ? `🔒 gesperrt – ${st.met}/${st.needed} Vorgänger besucht` : st.state === 'visited' ? '✔ schon besucht' : st.state === 'current' ? 'aktuell' : 'frei';
+          const info = st.state === 'locked' ? `🔒 gesperrt – ${lockReason(adv, st)}` : st.state === 'visited' ? '✔ schon besucht' : st.state === 'current' ? 'aktuell' : 'frei';
           box.appendChild(h('button', {
             class: `btn nextbtn ${st.state}`, type: 'button',
             onclick: async () => { if (await enterScene(target.id)) draw(); },
           }, h('span', { class: 'grow' }, h('strong', {}, target.name), l.label ? h('span', { class: 'muted small block' }, l.label) : null), h('span', { class: 'small' }, info)));
+          if (st.state !== 'visited' && st.state !== 'current') {
+            const rc = reqControls(adv, ses, target, { saveSes, addLog, onChange: draw });
+            if (rc) box.appendChild(rc);
+          }
         }
         panel.appendChild(box);
       }
@@ -204,7 +217,7 @@ export async function render(main, [id, tabParam], ctx) {
 
   // ---------------------------------------------------------------- Weg (Flowchart)
   if (tab === 'flow') {
-    playFlow(panel, adv, ses, { enter: enterScene, saveSes });
+    playFlow(panel, adv, ses, { enter: enterScene, saveSes, addLog });
     return;
   }
 
@@ -334,6 +347,46 @@ export async function render(main, [id, tabParam], ctx) {
   }
 
   // ---------------------------------------------------------------- Nachschlagen (NSCs & Orte)
+  // ---------------------------------------------------------------- Inventar
+  if (tab === 'items') {
+    const known = () => [...new Set([
+      ...adv.scenes.flatMap((sc) => [...(sc.grants || []), ...(sc.requires || []).filter((r) => r.type === 'item').map((r) => r.item)]),
+      ...(ses.items || []).map((i) => i.name),
+    ].map((x) => String(x || '').trim()).filter(Boolean))];
+    const draw = () => {
+      clear(panel);
+      const dl = h('datalist', { id: 'itemnames' }, known().map((n) => h('option', { value: n })));
+      const nameIn = h('input', { type: 'text', list: 'itemnames', placeholder: 'Gegenstand, z. B. Rostiger Schlüssel', 'aria-label': 'Neuer Gegenstand' });
+      const add = async () => {
+        const n = nameIn.value.trim();
+        if (!n) return;
+        giveItem(ses, n);
+        addLog(`Gegenstand erhalten: ${n}`, 'note');
+        await saveSes();
+        draw();
+      };
+      nameIn.addEventListener('keydown', (e) => { if (e.key === 'Enter') add(); });
+      panel.append(dl,
+        h('p', { class: 'muted small' }, 'Das Inventar der Gruppe. Gegenstände, die Szenen verlangen („🔑“), werden hier gesucht. Szenen können Gegenstände beim ersten Betreten automatisch vergeben.'),
+        h('div', { class: 'row gap wrap' }, nameIn, h('button', { class: 'btn primary', type: 'button', onclick: add }, '＋ Hinzufügen')));
+      if (!ses.items.length) panel.appendChild(h('div', { class: 'empty' }, 'Noch keine Gegenstände.'));
+      for (const it of ses.items) {
+        const holder = h('select', { 'aria-label': `Besitzer von ${it.name}` },
+          h('option', { value: '' }, 'Gruppe'),
+          ses.players.map((p) => h('option', { value: p.id, selected: p.id === it.holder }, p.name || 'Spieler')));
+        holder.addEventListener('change', async () => { it.holder = holder.value; await saveSes(); });
+        panel.appendChild(h('div', { class: 'card row gap wrap itemrow', 'data-item': it.name },
+          h('strong', { class: 'grow' }, `🎒 ${it.name}`), holder,
+          h('button', {
+            class: 'btn small danger', type: 'button', 'aria-label': `${it.name} entfernen`,
+            onclick: async () => { ses.items = ses.items.filter((x) => x.id !== it.id); addLog(`Gegenstand abgegeben/verloren: ${it.name}`, 'note'); await saveSes(); draw(); },
+          }, '🗑')));
+      }
+    };
+    draw();
+    return;
+  }
+
   if (tab === 'world') {
     let which = 'npcs';
     let q = '';

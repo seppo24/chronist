@@ -8,7 +8,7 @@ Empfehlung: Alles einmal am **Windows-PC** und die mit 📱 markierten Punkte zu
 
 - [ ] **T01** Die Seite öffnet sich über die GitHub-Pages-Adresse ohne Fehlermeldung, oben steht „Chronist“.
 - [ ] **T02** 📱 Die App lässt sich installieren (Chrome-Menü → App installieren) und startet danach als eigenes Fenster/Symbol.
-- [ ] **T03** Unten (Startseite) steht die Versionsnummer 0.2.1, und unter Einstellungen → App steht dieselbe.
+- [ ] **T03** Unten (Startseite) steht die Versionsnummer 0.3.0, und unter Einstellungen → App steht dieselbe.
 - [ ] **T04** 📱 Das Layout passt auf das Handy: kein seitliches Verrutschen, Schaltflächen gut antippbar.
 - [ ] **T05** Ohne API-Key erscheint auf der Startseite der Hinweis „Für die Entwicklung … fehlt noch dein API-Key“.
 
@@ -114,6 +114,27 @@ Vorbereitung: Ein Abenteuer mit mindestens 5 Szenen. Am schnellsten per Chat: �
 - [ ] **T83** 📱 Auf dem zweiten Gerät („Jetzt synchronisieren“) erscheinen Flowchart und Karte.
 - [ ] **T84** Bild löschen: Es verschwindet auch in Dropbox und auf dem anderen Gerät.
 - [ ] **T85** Ein altes Abenteuer aus Version 0.1.0 (ohne Wege) funktioniert weiter, alle Szenen sind frei.
+
+## J · Bedingungen mit Gegenständen und Würfen (neu in 0.3.0)
+
+Vorbereitung: Abenteuer mit Dorf → Kirche → Krypta und Dorf → Turm. Per Chat: „Die Kirche gibt der Gruppe beim Betreten einen Rostigen Schlüssel. Die Krypta verlangt diesen Schlüssel. Der Turm verlangt eine Probe Schloss knacken mit 1W20, mindestens 12.“
+
+- [ ] **T89** Claude legt Vergabe und Bedingungen an (Chips „… verlangt Gegenstand …“, „… vergibt …“).
+- [ ] **T90** Tab „🔀 Handlung“: Krypta und Turm zeigen „⛓ 🔑1“. Knoten antippen: Im Bereich „🔑 Zusätzliche Bedingungen“ stehen die Bedingungen.
+- [ ] **T91** Von Hand eine Bedingung hinzufügen (Gegenstand und Wurf) und mit × wieder entfernen. Ein Unsinn-Würfelausdruck wird abgelehnt.
+- [ ] **T92** „🎁 Gegenstände, die die Gruppe hier erhält“: hinzufügen und entfernen. Beim Tippen schlägt die App bekannte Namen vor.
+- [ ] **T93** Sitzung starten: In „Wie geht es weiter?“ ist der Turm gesperrt und nennt die Probe. Die Krypta ist von Dorf nicht erreichbar.
+- [ ] **T94** „🎲 Würfeln“ bei der Probe: Ergebnis wird angezeigt. Ab 12 ist der Turm frei, darunter bleibt er gesperrt („✘ misslungen“); nochmal würfeln geht.
+- [ ] **T95** Ein Ergebnis von Hand eintragen („Wert“ + „Eintragen“) wirkt genauso und ist mit „eingetragen“ gekennzeichnet. „Zurücksetzen“ nimmt es zurück.
+- [ ] **T96** Die Würfe stehen im Protokoll.
+- [ ] **T97** Kirche zum ersten Mal betreten: Hinweis „Erhalten: Rostiger Schlüssel“, Gegenstand liegt im Tab „🎒 Inventar“. Erneutes Betreten vergibt ihn nicht noch einmal.
+- [ ] **T98** Mit Schlüssel im Inventar ist die Krypta frei. Entfernst du den Schlüssel (🗑), ist sie wieder gesperrt.
+- [ ] **T99** Tab „🎒 Inventar“: Gegenstand hinzufügen, einem Spieler zuordnen, entfernen.
+- [ ] **T100** Tab „🔀 Weg“: gesperrte Szene antippen → Bedingungen mit Status; „＋ Ins Inventar“ legt den fehlenden Gegenstand an und öffnet die Szene.
+- [ ] **T101** „🔓 Freischalten“ öffnet die Szene trotz fehlender Bedingungen.
+- [ ] **T102** GM-Assistent: „Was braucht die Gruppe für die Krypta?“ → Antwort nennt den Schlüssel und das Inventar.
+- [ ] **T103** 📱 Handy: Bedingungszeilen mit Würfeln-/Eintragen-Knöpfen sind bedienbar, nichts ragt über den Rand.
+- [ ] **T104** Mit Dropbox: Inventar und Würfe erscheinen nach „Jetzt synchronisieren“ auf dem zweiten Gerät.
 
 ## I · Gefühl & Auffälligkeiten
 

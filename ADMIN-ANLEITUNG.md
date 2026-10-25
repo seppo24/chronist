@@ -98,11 +98,26 @@ Gut zu wissen:
 - Karten liegen auf dem Gerät und, falls Dropbox verbunden ist, in `Apps/<App-Name>/images/`. Auf einem zweiten Gerät erscheinen sie nach dem nächsten Abgleich (☁ antippen). Die **Sicherung als Datei enthält noch keine Bilder**.
 - Die Spieler-Tablets und das Spielbrett (Phase 2) werden diese Karten später anzeigen.
 
+### 3b · Bedingungen mit Gegenständen und Würfen (neu in 0.3.0)
+
+Zusätzlich zu den Wegen kann jeder Knoten **Bedingungen** haben. Die Szene wird erst frei, wenn der Weg offen ist **und** alle Bedingungen erfüllt sind. Du findest sie beim Knoten im Bereich **🔑 Zusätzliche Bedingungen**:
+- **Gegenstand verlangen:** Name eintippen (die App schlägt bekannte Namen vor) und **＋ Gegenstand verlangen**. Beispiel: Krypta verlangt „Rostiger Schlüssel“.
+- **Wurf verlangen:** Name der Probe, Würfelausdruck (z. B. `1W20`, `2W6+1`), „mindestens“ oder „höchstens“ und Zielwert, dann **＋ Wurf verlangen**. „Höchstens“ ist für Systeme gedacht, bei denen man unter einen Wert würfeln muss.
+- **Gegenstände vergeben:** Unter **🎁 Gegenstände, die die Gruppe hier erhält** trägst du ein, was die Gruppe beim *ersten* Betreten der Szene ins Inventar bekommt. So kannst du einen Schlüssel in der Kirche verstecken, den man in der Krypta braucht. Achte darauf, dass jeder verlangte Gegenstand irgendwo zu bekommen ist, sonst steckt die Gruppe fest (du kannst sonst immer 🔓 freischalten).
+- Claude kann das alles auch anlegen („Die Krypta verlangt den Rostigen Schlüssel, die Kirche gibt ihn“). Er kennt dann auch Inventar und Würfe in der Sitzung.
+
+Am Spielabend:
+- Im Kasten **Wie geht es weiter?** (Tab 🎬 Szene) und im Tab **🔀 Weg** steht bei jeder gesperrten Szene, was fehlt. Fehlt ein Gegenstand, legst du ihn mit **＋ Ins Inventar** an, zum Beispiel wenn die Gruppe ihn am Tisch gefunden hat. Bei Proben drückst du **🎲 Würfeln** (die App würfelt) oder trägst das am Tisch gewürfelte Ergebnis ein.
+- Das **🎒 Inventar** ist ein eigener Tab. Dort fügst du Gegenstände hinzu, entfernst sie und ordnest sie optional einem Spieler zu. Für Bedingungen zählt nur, ob die Gruppe den Gegenstand besitzt (Name, ohne Groß-/Kleinschreibung).
+- Ein gelungener Wurf bleibt gültig. Mit **Nochmal würfeln** oder **Zurücksetzen** änderst du das. Alle Würfe landen im Protokoll.
+- **🔓 Freischalten** und „Trotzdem wechseln“ umgehen auch diese Bedingungen: Du bleibst Herr des Spiels.
+
 ### Spielleiter-Modus (Spielabend)
 Tabs oben:
 - **🎬 Szene:** aktuelle Szene mit Vorlesetext (goldener Kasten, mit Kopieren-Knopf) und GM-Notizen (rötlich, nur für dich). Mit ◀ ▶ oder der Liste (oder über „Wie geht es weiter?“) die Szene wechseln; „Als erledigt markieren“ hakt ab. Antippbare Chips öffnen NSCs/Orte der Szene. Der Kasten **➡️ Wie geht es weiter?** zeigt die möglichen Wege aus dem Flowchart; gesperrte sind mit 🔒 und dem Stand („1/3 Vorgänger besucht“) markiert. Karten der Szene erscheinen darunter.
 - **🔀 Weg:** Das Flowchart mit Spielstand: ▶ aktuell (gold), ✔ besucht (grün), frei (violett umrandet), 🔒 gesperrt (gestrichelt, mit Zähler). Knoten antippen zeigt Details, fehlende Orte und Karten. **▶ Hierhin wechseln** wechselt die Szene; bei gesperrten Szenen fragt die App vorher nach (du kannst trotzdem wechseln). **🔓 Freischalten** öffnet einen gesperrten Knoten dauerhaft für diese Sitzung, ohne dort hinzuwechseln.
 - **🎲 Würfel:** W4 bis W100, eigene Ausdrücke (`2W6+3`, `d20`, `4d6kh3` = die drei höchsten von vier W6, `2d20kl1` = der niedrigere von zwei W20). Der „Hauptwurf des Regelwerks“-Knopf nutzt den Standardwurf deines Regelwerks.
+- **🎒 Inventar:** Gruppen-Inventar (siehe 3b).
 - **👥 Spieler:** Spieler anlegen/umbenennen, Zähler für Vorräte (− / +), Zustände, Notizen. „Alle Vorräte auffüllen“ für Rasten. Die Zahl der Spieler ist frei änderbar.
 - **🗺️ NSCs & Orte:** durchsuchbares Nachschlagewerk.
 - **📜 Regeln:** Regelübersicht zum Nachsehen am Tisch.

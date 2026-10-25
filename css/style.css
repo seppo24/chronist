@@ -283,3 +283,15 @@ dialog.dlg::backdrop { background: rgba(5, 3, 12, .7); }
 dialog.viewer { width: min(96vw, 900px); }
 .viewer-body { margin-top: 8px; text-align: center; overflow: auto; max-height: 78dvh; }
 .viewer-body img { max-width: 100%; height: auto; border-radius: 8px; }
+
+/* v0.3.0 – Bedingungen (Gegenstände & Würfe), Inventar */
+.reqbox { margin-top: .6rem; padding: .5rem .6rem; border: 1px dashed var(--line, #44385f); border-radius: 10px; display: grid; gap: .4rem; }
+.reqrow { display: flex; flex-wrap: wrap; gap: .4rem; align-items: center; padding: .3rem .1rem; border-top: 1px solid rgba(255,255,255,.06); }
+.reqrow:first-of-type { border-top: 0; }
+.reqrow.met strong { color: var(--ok); }
+.reqrow.open strong { color: var(--warn); }
+input.tiny { width: 5.2em; min-width: 0; }
+input.short { width: 7em; min-width: 0; }
+.reqedit .sub { display: block; margin-top: .8rem; color: var(--muted); font-size: .9em; }
+.reqedit .row { margin-top: .4rem; }
+.itemrow { align-items: center; }

@@ -4,8 +4,11 @@
 //   scene.links  = [{ to: <Szenen-id>, label: 'optional' }]   Pfeile von dieser Szene zu anderen
 //   scene.unlock = { mode: 'any' | 'all' | 'count', count: n }  wann DIESE Szene frei wird,
 //                  gemessen an den Szenen, die auf sie zeigen ("Vorgänger")
+//   scene.requires = [{id,type:'item',item}|{id,type:'roll',label,expr,cmp:'>='|'<=',target}]  zusätzliche Bedingungen (alle nötig)
+//   scene.grants   = ['Gegenstand', …]  Gegenstände, die die Gruppe beim ersten Betreten erhält
 //   scene.x / scene.y                                         Position im Diagramm
 // Sitzung:  ses.visited = [ids]  (schon betreten),  ses.forced = [ids]  (vom Spielleiter freigeschaltet)
+//           ses.items = [{id,name,holder}]  Inventar,  ses.rolls = { <Bedingungs-id>: {total,ok,expr,manual} }
 import { h, clear } from './util.js';
 
 export const NODE_W = 146;
@@ -44,14 +47,48 @@ export function unlockRule(scene) {
   return { mode, count: Math.max(1, parseInt(u.count, 10) || 1) };
 }
 
-/** Kurztext für das Abzeichen am Knoten, z. B. "alle 3" oder "2 von 3". Leer, wenn keine Regel nötig ist. */
+/** Bedingungen einer Szene (Gegenstand oder Wurf), bereinigt. */
+export const CMP_LABELS = { '>=': 'mindestens', '<=': 'höchstens' };
+
+export function reqList(scene) {
+  return ((scene && scene.requires) || []).filter((r) => r && r.id && (r.type === 'item' ? String(r.item || '').trim() : r.type === 'roll'));
+}
+
+export function reqText(r) {
+  if (r.type === 'item') return `Gegenstand: ${r.item}`;
+  return `Wurf „${r.label || 'Probe'}“: ${r.expr} ${r.cmp === '<=' ? '≤' : '≥'} ${r.target}`;
+}
+
+export const normName = (s) => String(s || '').trim().toLowerCase();
+
+export function hasItem(ses, name) {
+  const n = normName(name);
+  return (ses.items || []).some((i) => normName(i.name) === n);
+}
+
+export function rollPasses(r, total) {
+  return r.cmp === '<=' ? total <= Number(r.target) : total >= Number(r.target);
+}
+
+/** Zustand einer einzelnen Bedingung in einer Sitzung. */
+export function reqState(ses, r) {
+  if (r.type === 'item') return { met: hasItem(ses, r.item), result: null };
+  const res = (ses.rolls || {})[r.id] || null;
+  return { met: !!(res && res.ok), result: res };
+}
+
+/** Kurztext für das Abzeichen am Knoten, z. B. "alle 3 · 🔑 2". Leer, wenn nichts nötig ist. */
 export function gateText(adv, scene) {
+  const parts = [];
   const n = incoming(adv, scene.id).length;
-  if (n < 2) return '';
-  const r = unlockRule(scene);
-  if (r.mode === 'all') return `alle ${n}`;
-  if (r.mode === 'count') return `${Math.min(r.count, n)} von ${n}`;
-  return '';
+  if (n >= 2) {
+    const r = unlockRule(scene);
+    if (r.mode === 'all') parts.push(`alle ${n}`);
+    else if (r.mode === 'count') parts.push(`${Math.min(r.count, n)} von ${n}`);
+  }
+  const q = reqList(scene);
+  if (q.length) parts.push(`🔑${q.length}`);
+  return parts.join(' · ');
 }
 
 export function visitedSet(ses) {
@@ -69,18 +106,43 @@ export function sceneStatus(adv, ses, id) {
   let needed = 0;
   if (preds.length) needed = rule.mode === 'all' ? preds.length : rule.mode === 'count' ? Math.min(rule.count, preds.length) : 1;
   const forced = (ses.forced || []).includes(id);
-  const open = !hasFlow(adv) || preds.length === 0 || metList.length >= needed || forced;
+  const pathOpen = !hasFlow(adv) || preds.length === 0 || metList.length >= needed;
+  const reqs = reqList(scene).map((r) => ({ req: r, ...reqState(ses, r) }));
+  const reqsOpen = reqs.every((r) => r.met);
+  const open = (pathOpen && reqsOpen) || forced;
   let state;
   if (ses.currentSceneId === id) state = 'current';
   else if (visited.has(id)) state = 'visited';
   else state = open ? 'available' : 'locked';
-  return { state, open, met: metList.length, needed, preds, missing, forced };
+  return { state, open, met: metList.length, needed, preds, missing, forced, pathOpen, reqs, reqsOpen };
+}
+
+/** Warum ist eine Szene gesperrt? Kurzer Satz für Anzeigen und Claude. */
+export function lockReason(adv, st) {
+  const out = [];
+  if (!st.pathOpen) {
+    const names = st.missing.map((id) => sceneById(adv, id)?.name).filter(Boolean);
+    out.push(`${st.met} von ${st.needed} nötigen Vorgängern besucht (es fehlen: ${names.join(', ')})`);
+  }
+  for (const r of st.reqs) {
+    if (r.met) continue;
+    out.push(r.req.type === 'item' ? `Gegenstand „${r.req.item}“ fehlt` : `Wurf „${r.req.label || 'Probe'}“ nicht geschafft${r.result ? ` (${r.result.total})` : ' (noch offen)'}`);
+  }
+  return out.join('; ');
+}
+
+/** Kurzform für kleine Abzeichen: "🔒 1/3" oder "🔒 🔑". */
+export function lockBadge(st) {
+  if (!st.pathOpen) return `🔒 ${st.met}/${st.needed}`;
+  return '🔒 🔑';
 }
 
 /** Sitzungsstand für den Flow vorbereiten (ältere Sitzungen kennen ihn noch nicht). */
 export function ensureFlowState(ses) {
   if (!Array.isArray(ses.visited)) ses.visited = [...new Set([...(ses.doneScenes || []), ses.currentSceneId].filter(Boolean))];
   if (!Array.isArray(ses.forced)) ses.forced = [];
+  if (!Array.isArray(ses.items)) ses.items = [];
+  if (!ses.rolls || typeof ses.rolls !== 'object') ses.rolls = {};
 }
 
 // ---------------------------------------------------------------- Anordnung

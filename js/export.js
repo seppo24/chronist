@@ -1,5 +1,6 @@
 // Darstellung von Regelwerk und komplettem Abenteuer als Markdown (Anzeige + Export).
 import { SECTIONS, COLLECTIONS, STATUS_LABELS } from './adventure.js';
+import { reqList, reqText } from './flow.js';
 
 export function rulesetToMd(rs) {
   if (!rs) return '_Noch kein Regelwerk festgelegt._';
@@ -59,6 +60,9 @@ export function adventureToMarkdown(adv) {
         if (preds.length >= 2 && it.unlock && it.unlock.mode !== 'any') {
           lines.push(`**Frei, wenn:** ${it.unlock.mode === 'all' ? 'alle' : `mindestens ${it.unlock.count} von`} ${preds.map((s) => s.name).join(', ')} besucht ${it.unlock.mode === 'all' ? 'sind' : 'sind'}`);
         }
+        const rq = reqList(it).map(reqText);
+        if (rq.length) lines.push(`**Zusätzliche Bedingungen (alle nötig):** ${rq.join('; ')}`);
+        if ((it.grants || []).length) lines.push(`**Gruppe erhält hier:** ${it.grants.join(', ')}`);
         if ((it.images || []).length) lines.push(`**Karten/Bilder:** ${it.images.map((i) => i.name).join(', ')}`);
       }
       o.push(lines.join('\n\n'));
