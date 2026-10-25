@@ -52,6 +52,7 @@ Gut zu wissen:
 Auf jedem weiteren Gerät: App-Key eintragen und „Mit Dropbox verbinden“ (mit demselben Dropbox-Konto). Danach **Jetzt synchronisieren**.
 
 ### D) Als App installieren
+- **Meldung „bereits installiert“ / „Jetzt öffnen“ → Fehler:** Erst auf Version 0.2.1 oder neuer aktualisieren und die Seite einmal neu laden (ggf. Cache leeren). Hilft das nicht: Chrome-Menü ⋮ → „Zum Startbildschirm hinzufügen“ → „Verknüpfung erstellen“. Unter `chrome://webapks` siehst du, welche Apps Chrome als installiert kennt. Vorsicht: „Websitedaten löschen“ gilt für das ganze `seppo24.github.io` und betrifft auch andere Apps dort.
 
 - **Android (Chrome):** Seite öffnen → Menü **⋮** → **App installieren** (oder „Zum Startbildschirm hinzufügen“).
 - **Windows (Chrome):** Seite öffnen → in der Adressleiste das Installationssymbol (Monitor mit Pfeil) anklicken, oder Menü **⋮** → **Speichern und teilen** → **Seite als App installieren**.

@@ -1,7 +1,7 @@
 // Service Worker: macht die App installierbar und offline startfähig.
 // Strategie: Netzwerk zuerst (damit Updates sofort ankommen), bei Offline aus dem Cache.
 // Bei jedem Update CACHE_VERSION passend zu js/version.js anheben.
-const CACHE_VERSION = '0.2.0';
+const CACHE_VERSION = '0.2.1';
 const CACHE = `chronist-${CACHE_VERSION}`;
 
 const SHELL = [

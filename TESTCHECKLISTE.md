@@ -8,7 +8,7 @@ Empfehlung: Alles einmal am **Windows-PC** und die mit 📱 markierten Punkte zu
 
 - [ ] **T01** Die Seite öffnet sich über die GitHub-Pages-Adresse ohne Fehlermeldung, oben steht „Chronist“.
 - [ ] **T02** 📱 Die App lässt sich installieren (Chrome-Menü → App installieren) und startet danach als eigenes Fenster/Symbol.
-- [ ] **T03** Unten (Startseite) steht die Versionsnummer 0.2.0, und unter Einstellungen → App steht dieselbe.
+- [ ] **T03** Unten (Startseite) steht die Versionsnummer 0.2.1, und unter Einstellungen → App steht dieselbe.
 - [ ] **T04** 📱 Das Layout passt auf das Handy: kein seitliches Verrutschen, Schaltflächen gut antippbar.
 - [ ] **T05** Ohne API-Key erscheint auf der Startseite der Hinweis „Für die Entwicklung … fehlt noch dein API-Key“.
 

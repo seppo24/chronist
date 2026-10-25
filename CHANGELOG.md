@@ -2,6 +2,11 @@
 
 Jede Änderung an der App wird hier festgehalten. Die aktuelle Version steht unten auf der Startseite und unter Einstellungen → App.
 
+## [0.2.1] – 2026-10-25 · Installation auf Android
+
+### Geändert
+- Die App hat jetzt eine eigene, feste App-Kennung (`id` im Manifest). Chrome erkennt sie dadurch unabhängig von anderen Apps unter demselben `github.io`-Konto (z. B. „Mediathek“) und meldet nicht mehr fälschlich „bereits installiert“.
+
 ## [0.2.0] – 2026-10-25 · Handlung als Flowchart & Karten
 
 ### Neu

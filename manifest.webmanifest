@@ -3,6 +3,7 @@
   "short_name": "Chronist",
   "description": "Pen-&-Paper-Abenteuer mit Claude entwickeln und als Spielleiter durchführen.",
   "lang": "de",
+  "id": "https://seppo24.github.io/chronist/",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
