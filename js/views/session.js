@@ -9,7 +9,7 @@ import { rollExpr, describeRoll, parseDice, extremes } from '../dice.js';
 import { rulesetToMd } from '../export.js';
 import { sceneById, outLinks, sceneStatus, ensureFlowState, hasFlow, lockReason } from '../flow.js';
 import { reqControls, giveItem } from './reqs.js';
-import { imageStrip } from '../images.js';
+import { imageStrip, imageToDataUrl, getImageUrl } from '../images.js';
 import * as live from '../live.js';
 import { playFlow } from './flowplay.js';
 
@@ -20,6 +20,7 @@ const TABS = [
   ['players', '👥 Spieler'],
   ['items', '🎒 Inventar'],
   ['tablets', '📱 Tablets'],
+  ['board', '🗺️ Spielbrett'],
   ['world', '🗺️ NSCs & Orte'],
   ['rules', '📜 Regeln'],
   ['log', '📝 Protokoll'],
@@ -56,6 +57,35 @@ export async function render(main, [id, tabParam], ctx) {
   };
   if (ses.room && ses.room.on && live.getConfig()) live.startLive(adv, ses, liveHooks).catch((e) => console.warn('Live:', e));
 
+  /** Live-Raum (für Tablets und Spielbrett) anlegen. */
+  const ensureRoom = async () => {
+    if (ses.room && ses.room.on) return true;
+    ses.room = { on: true, code: live.newRoomCode(), createdAt: Date.now(), boardImages: [] };
+    await saveSes();
+    try { await live.startLive(adv, ses, liveHooks); return true; } catch (e) { toast(`Verbindung fehlgeschlagen: ${live.friendlyError(e)}`, 'err', 7000); ses.room = null; await saveItem('sessions', ses); return false; }
+  };
+
+  /** Spielbrett: Karte zeigen / leeren / Text zeigen. */
+  const boardShowImage = async (im, sceneName) => {
+    const api = await live.startLive(adv, ses, liveHooks);
+    ses.room.boardImages = ses.room.boardImages || [];
+    if (!ses.room.boardImages.includes(im.id)) {
+      const d = await imageToDataUrl(im.id);
+      if (!d) throw new Error('Das Bild liegt auf diesem Gerät nicht vor (erst synchronisieren).');
+      await api.putBoardImage(im.id, im.name, d);
+      ses.room.boardImages.push(im.id);
+    }
+    ses.room.board = { mode: 'image', imageId: im.id, name: im.name || sceneName || '' };
+    await api.setBoard(ses.room.board);
+    await saveSes();
+  };
+  const boardSet = async (b) => {
+    const api = await live.startLive(adv, ses, liveHooks);
+    ses.room.board = b;
+    await api.setBoard(b);
+    await saveSes();
+  };
+
   /** Szene betreten. Gesperrte Szenen nur nach Rückfrage (dann gilt sie als vom Spielleiter freigegeben). */
   const enterScene = async (id) => {
     const sc = sceneById(adv, id);
@@ -69,6 +99,9 @@ export async function render(main, [id, tabParam], ctx) {
     if (ses.currentSceneId !== id) {
       ses.currentSceneId = id;
       addLog(`Szene: ${sc.name}`, 'scene');
+      if (ses.room && ses.room.on && ses.room.boardAuto && (sc.images || []).length) {
+        boardShowImage(sc.images[0], sc.name).catch((e) => toast(`Spielbrett: ${live.friendlyError(e)}`, 'err', 6000));
+      }
     }
     if (!ses.visited.includes(id)) {
       ses.visited.push(id);
@@ -428,9 +461,7 @@ export async function render(main, [id, tabParam], ctx) {
           h('button', {
             class: 'btn primary', type: 'button', 'data-act': 'tablets-on',
             onclick: async () => {
-              ses.room = { on: true, code: live.newRoomCode(), createdAt: Date.now() };
-              await saveSes();
-              try { await live.startLive(adv, ses, liveHooks); } catch (e) { toast(`Verbindung fehlgeschlagen: ${e.message}`, 'err', 6000); ses.room = null; await saveItem('sessions', ses); }
+              await ensureRoom();
               draw();
             },
           }, 'Tablets zuschalten')));
@@ -469,6 +500,60 @@ export async function render(main, [id, tabParam], ctx) {
     draw();
     if (ses.room && ses.room.on && cfg) live.startLive(adv, ses, liveHooks).then((api) => { claims = api.claims(); draw(); }).catch((e) => toast(`Live-Verbindung: ${e.message}`, 'err', 6000));
     return () => { liveUi.onPlayers = null; };
+  }
+
+  // ---------------------------------------------------------------- Spielbrett
+  if (tab === 'board') {
+    const cfg = live.getConfig();
+    const draw = () => {
+      clear(panel);
+      if (!cfg) {
+        panel.appendChild(h('div', { class: 'card' }, h('h3', {}, '🗺️ Spielbrett'),
+          h('p', {}, 'Ein Tablet in der Tischmitte zeigt dann die Karten, die du freigibst. Dafür braucht die App einmalig die Live-Verbindung (Firebase).'),
+          h('p', {}, h('a', { class: 'btn primary', href: '#/settings' }, 'Live-Verbindung einrichten'))));
+        return;
+      }
+      if (!ses.room || !ses.room.on) {
+        panel.appendChild(h('div', { class: 'card' }, h('h3', {}, '🗺️ Spielbrett'),
+          h('p', {}, 'Optional zuschaltbar. Das Tablet in der Tischmitte zeigt nur, was du ausdrücklich freigibst: eine Karte, einen Text oder nichts. GM-Inhalte sind nie sichtbar.'),
+          h('button', { class: 'btn primary', type: 'button', 'data-act': 'room-on', onclick: async () => { await ensureRoom(); draw(); } }, 'Spielbrett zuschalten')));
+        return;
+      }
+      const b = ses.room.board || null;
+      const status = !b || b.mode === 'blank' ? 'Leer (Wartebild)' : b.mode === 'text' ? `Text: „${b.text}“` : `Karte: ${b.name || 'ohne Namen'}`;
+      const wrap = async (fn) => { try { await fn(); draw(); } catch (e) { toast(`Spielbrett: ${live.friendlyError(e)}`, 'err', 7000); } };
+      const textIn = h('input', { type: 'text', placeholder: 'Kurzer Text für alle, z. B. „Ihr hört ein Heulen …“', 'aria-label': 'Text für das Spielbrett' });
+      panel.appendChild(h('div', { class: 'card' },
+        h('h3', {}, '🗺️ Spielbrett'),
+        h('p', { class: 'muted small' }, 'Öffne den Spielbrett-Link auf dem Tablet in der Tischmitte (Vollbild-Knopf oben rechts).'),
+        h('div', { class: 'row gap wrap' },
+          h('button', { class: 'btn', type: 'button', 'data-act': 'copy-board', onclick: async () => { await copyText(live.boardLink(ses.room.code)); toast('Spielbrett-Link kopiert', 'ok', 2200); } }, '🔗 Spielbrett-Link kopieren')),
+        h('p', {}, h('strong', {}, 'Gerade zu sehen: '), h('span', { 'data-board-status': '1' }, status)),
+        h('div', { class: 'row gap wrap' },
+          h('button', { class: 'btn', type: 'button', 'data-act': 'board-clear', onclick: () => wrap(() => boardSet({ mode: 'blank' })) }, '⬛ Leeren'),
+          textIn,
+          h('button', { class: 'btn', type: 'button', 'data-act': 'board-text', onclick: () => { const t = textIn.value.trim(); if (t) wrap(() => boardSet({ mode: 'text', text: t })); } }, '💬 Text zeigen')),
+        h('label', { class: 'inline' },
+          h('input', { type: 'checkbox', 'data-act': 'board-auto', checked: !!ses.room.boardAuto, onchange: async (e) => { ses.room.boardAuto = e.target.checked; await saveSes(); } }),
+          ' Bei Szenenwechsel automatisch die erste Karte der neuen Szene zeigen')));
+      const order = [...adv.scenes].sort((x, y) => (x.id === ses.currentSceneId ? -1 : 0) - (y.id === ses.currentSceneId ? -1 : 0));
+      let any = false;
+      for (const sc of order) {
+        for (const im of sc.images || []) {
+          any = true;
+          const on = b && b.mode === 'image' && b.imageId === im.id;
+          const thumb = h('img', { alt: '' });
+          getImageUrl(im.id).then((u) => { if (u) thumb.src = u; });
+          panel.appendChild(h('div', { class: `card boardpick${on ? ' on' : ''}`, 'data-img': im.id },
+            thumb,
+            h('div', { class: 'grow' }, h('strong', {}, im.name || 'Karte'), h('span', { class: 'muted small block' }, sc.name + (sc.id === ses.currentSceneId ? ' (aktuelle Szene)' : ''))),
+            h('button', { class: 'btn small primary', type: 'button', 'data-act': 'board-show', onclick: () => wrap(() => boardShowImage(im, sc.name)) }, on ? '✔ Zu sehen' : '▶ Zeigen')));
+        }
+      }
+      if (!any) panel.appendChild(h('div', { class: 'empty' }, 'Noch keine Karten. Hänge in der Werkstatt (Tab „🔀 Handlung“) Bilder an Knoten.'));
+    };
+    draw();
+    return;
   }
 
   if (tab === 'world') {

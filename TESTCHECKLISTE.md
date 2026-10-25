@@ -8,7 +8,7 @@ Empfehlung: Alles einmal am **Windows-PC** und die mit 📱 markierten Punkte zu
 
 - [ ] **T01** Die Seite öffnet sich über die GitHub-Pages-Adresse ohne Fehlermeldung, oben steht „Chronist“.
 - [ ] **T02** 📱 Die App lässt sich installieren (Chrome-Menü → App installieren) und startet danach als eigenes Fenster/Symbol.
-- [ ] **T03** Unten (Startseite) steht die Versionsnummer 0.4.0, und unter Einstellungen → App steht dieselbe.
+- [ ] **T03** Unten (Startseite) steht die Versionsnummer 0.5.0, und unter Einstellungen → App steht dieselbe.
 - [ ] **T04** 📱 Das Layout passt auf das Handy: kein seitliches Verrutschen, Schaltflächen gut antippbar.
 - [ ] **T05** Ohne API-Key erscheint auf der Startseite der Hinweis „Für die Entwicklung … fehlt noch dein API-Key“.
 
@@ -161,6 +161,25 @@ Vorbereitung: Firebase einrichten (Admin-Anleitung C2). Du brauchst mindestens e
 - [ ] **T123** „Tablets abschalten“: Alte Links zeigen „Spielraum nicht gefunden“. In der Firebase-Konsole (Firestore Database → Daten) sind die Einträge unter `rooms` weg.
 - [ ] **T124** 📱 Das Tablet bleibt bei längerem Zuschauen wach (Bildschirm geht nicht aus) und ist gut lesbar (Schrift groß genug, auch quer).
 - [ ] **T125** Ohne Firebase-Einrichtung läuft die App für den Spielleiter exakt wie vorher (keine Fehlermeldungen).
+
+## L · Spielbrett (neu in 0.5.0)
+
+Vorbereitung: Firestore-Regeln wie in Admin-Anleitung C2 aktualisieren. Mindestens eine Szene mit hochgeladener Karte. Ein zweites Gerät als Spielbrett.
+
+- [ ] **T126** Tab „🗺️ Spielbrett“: ohne Zuschalten erscheint „Spielbrett zuschalten“; danach „🔗 Spielbrett-Link kopieren“ und die Kartenliste (aktuelle Szene zuerst, mit Vorschaubild).
+- [ ] **T127** Spielbrett-Link auf dem zweiten Gerät öffnen: Wartebild mit Abenteuername, keine Menüs. Vollbild-Knopf (⛶) funktioniert.
+- [ ] **T128** „▶ Zeigen“: Die Karte erscheint nach wenigen Sekunden vollflächig auf dem Spielbrett, mit Namen unten links.
+- [ ] **T129** Karte am Spielbrett antippen: vergrößert/verkleinert; mit zwei Fingern lässt sie sich zoomen und verschieben.
+- [ ] **T130** „⬛ Leeren“ zeigt wieder das Wartebild.
+- [ ] **T131** „💬 Text zeigen“: Der Text erscheint groß und gut lesbar auf dem Spielbrett.
+- [ ] **T132** Dieselbe Karte erneut zeigen: erscheint schneller (kein erneutes Hochladen).
+- [ ] **T133** Haken „Bei Szenenwechsel automatisch …“: Wechsel in eine Szene mit Karte zeigt sie auf dem Spielbrett; Wechsel in eine Szene ohne Karte lässt das Brett unverändert.
+- [ ] **T134** 🔒 Auf dem Spielbrett erscheinen nie Szenentexte, GM-Notizen oder Geheimnisse, nur Freigegebenes.
+- [ ] **T135** Spieler-Tablets und Spielbrett gleichzeitig: beide funktionieren, jedes zeigt das Seine.
+- [ ] **T136** 📱 Die Karte ist auf einem großen Tablet scharf genug (Schrift auf der Karte lesbar).
+- [ ] **T137** Spielbrett-Tablet neu laden: Es zeigt wieder die zuletzt freigegebene Karte.
+- [ ] **T138** „Tablets abschalten“: Spielbrett zeigt „Spielraum nicht gefunden“, in der Firebase-Konsole sind die Einträge unter `rooms` weg.
+- [ ] **T139** Mit alten Regeln (nur zum Test): verständliche Fehlermeldung statt Absturz.
 
 ## I · Gefühl & Auffälligkeiten
 

@@ -174,10 +174,15 @@ async function startLiveNow(adv, ses, hooks = {}) {
     notify() { clearTimeout(state.timer); state.timer = setTimeout(() => api.pushAll().catch((e) => console.warn('Live:', e)), 500); },
     async release(pid) { await fs.setDoc(fs.doc(db, 'rooms', code, 'players', pid), { claim: null }, { merge: true }); },
     claims: () => state.claims,
+    /** Spielbrett: Bild (verkleinert, als Data-URL) bereitstellen und Anzeige setzen. */
+    async putBoardImage(id, name, d) { await fs.setDoc(fs.doc(db, 'rooms', code, 'boardimg', id), { name: String(name || ''), data: d.data, w: d.w, h: d.h }); },
+    async setBoard(b) { await fs.setDoc(fs.doc(db, 'rooms', code, 'board', 'current'), { mode: b.mode, imageId: b.imageId || '', name: b.name || '', text: b.text || '', rev: Date.now() }); },
     /** Beendet die Verbindung und löscht alle Daten dieses Raums aus Firebase. */
     async close() {
       api.stop();
       for (const id of new Set([...state.known, ...state.ses.players.map((p) => p.id)])) { try { await fs.deleteDoc(fs.doc(db, 'rooms', code, 'players', id)); } catch { /* egal */ } }
+      for (const id of state.ses.room.boardImages || []) { try { await fs.deleteDoc(fs.doc(db, 'rooms', code, 'boardimg', id)); } catch { /* egal */ } }
+      try { await fs.deleteDoc(fs.doc(db, 'rooms', code, 'board', 'current')); } catch { /* egal */ }
       try { await fs.deleteDoc(roomRef); } catch { /* egal */ }
     },
     stop() { if (state.unsub) { state.unsub(); state.unsub = null; } clearTimeout(state.timer); if (current && current.code === code) current = null; },
@@ -225,4 +230,28 @@ export async function tabletClaim(code, pid, device) {
 export async function tabletSaveNotes(code, pid, text) {
   const { db, fs } = await load();
   await fs.setDoc(fs.doc(db, 'rooms', code, 'players', pid), { playerNotes: String(text), playerNotesAt: Date.now() }, { merge: true });
+}
+
+export async function boardWatch(code, cb) {
+  const { db, fs } = await load();
+  return fs.onSnapshot(fs.doc(db, 'rooms', code, 'board', 'current'), (snap) => cb(snap.exists() ? snap.data() : null));
+}
+
+export async function boardImage(code, id) {
+  const { db, fs } = await load();
+  const snap = await fs.getDoc(fs.doc(db, 'rooms', code, 'boardimg', id));
+  return snap.exists() ? snap.data() : null;
+}
+
+/** Link für das Spielbrett-Tablet. */
+export function boardLink(code) {
+  const cfg = getConfig();
+  return `${location.origin}${location.pathname}#/board/${code}/-/${cfg ? encodeConfig(cfg) : '-'}`;
+}
+
+/** Freundlicher Hinweis, wenn Firestore Zugriffe ablehnt (veraltete Regeln). */
+export function friendlyError(e) {
+  const m = String((e && (e.code || e.message)) || e);
+  if (/permission|PERMISSION/.test(m)) return 'Firestore lehnt den Zugriff ab. Bitte die Regeln aktualisieren (Admin-Anleitung, Abschnitt C2, Schritt 3).';
+  return m;
 }

@@ -138,3 +138,26 @@ export function imageStrip(owner, save, { editable = true, title = '🗺️ Kart
   draw();
   return root;
 }
+
+/** Bild als kleine JPEG-Data-URL für das Spielbrett (muss in ein Firestore-Dokument unter 1 MiB passen). */
+export async function imageToDataUrl(id, maxChars = 780_000) {
+  const rec = await getItem('images', id);
+  if (!rec || !rec.blob) return null;
+  const bmp = await createImageBitmap(rec.blob);
+  let side = 1600;
+  let q = 0.78;
+  for (let i = 0; i < 12; i++) {
+    const scale = Math.min(1, side / Math.max(bmp.width, bmp.height));
+    const w = Math.max(1, Math.round(bmp.width * scale));
+    const hh = Math.max(1, Math.round(bmp.height * scale));
+    const canvas = document.createElement('canvas');
+    canvas.width = w; canvas.height = hh;
+    const c = canvas.getContext('2d');
+    c.fillStyle = '#fff'; c.fillRect(0, 0, w, hh); c.drawImage(bmp, 0, 0, w, hh);
+    const data = canvas.toDataURL('image/jpeg', q);
+    if (data.length <= maxChars) { if (bmp.close) bmp.close(); return { data, w, h: hh }; }
+    if (q > 0.5) q -= 0.1; else side = Math.round(side * 0.8);
+  }
+  if (bmp.close) bmp.close();
+  throw new Error('Das Bild ist zu groß für das Spielbrett.');
+}

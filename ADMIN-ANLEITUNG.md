@@ -57,7 +57,7 @@ Firebase ist der kostenlose Live-Dienst von Google. Es braucht **keine Kreditkar
 
 1. Öffne <https://console.firebase.google.com> und melde dich an → **Projekt erstellen** (oder „Projekt hinzufügen“) → Name z. B. `chronist` → Google Analytics **ausschalten** → **Projekt erstellen**.
 2. Links **Build → Firestore Database** (oder „Datenbank“) → **Datenbank erstellen** → Standort `eur3 (europe-west)` → **Im Produktionsmodus starten** → **Erstellen**.
-3. Oben den Reiter **Regeln** öffnen, den gesamten Text durch diesen ersetzen und **Veröffentlichen** klicken:
+3. Oben den Reiter **Regeln** öffnen, den gesamten Text durch diesen ersetzen und **Veröffentlichen** klicken. (Hast du schon die Regeln aus Version 0.4.0 eingetragen, ersetze sie jetzt durch diese. Sie gelten auch für das Spielbrett ab 0.5.0.)
 
 ```
 rules_version = '2';
@@ -66,7 +66,7 @@ service cloud.firestore {
     match /rooms/{room} {
       allow get, create, update, delete: if true;
       allow list: if false;
-      match /players/{player} {
+      match /{unterlagen=**} {
         allow read, write: if true;
       }
     }
@@ -157,6 +157,21 @@ Voraussetzung: Firebase ist eingerichtet (Abschnitt C2). Jedes Tablet braucht nu
 
 Tipps: Die Seite hält den Bildschirm auf Tablets wach (wenn der Browser es erlaubt). Kein Wlan am Tisch? Dann geht es auch mit mobilen Daten, nur die Verbindung muss bestehen.
 
+### 3d · Spielbrett-Tablet (neu in 0.5.0)
+
+Ein Tablet in der Tischmitte zeigt nur, was **du ausdrücklich freigibst**: eine Karte, einen kurzen Text oder ein Wartebild. Voraussetzung: Firebase ist eingerichtet, **die Regeln aus Abschnitt C2 sind auf dem aktuellen Stand** (siehe Schritt 3).
+1. Tab **🗺️ Spielbrett** → **Spielbrett zuschalten** (nutzt denselben geheimen Raum wie die Spieler-Tablets).
+2. **🔗 Spielbrett-Link kopieren**, auf dem Tablet in der Tischmitte öffnen und oben rechts den Vollbild-Knopf (⛶) antippen. Es zeigt zunächst ein Wartebild.
+3. Darunter stehen alle Karten, die du in der Werkstatt an Knoten gehängt hast (die der aktuellen Szene zuerst). **▶ Zeigen** schickt die Karte aufs Spielbrett. **⬛ Leeren** zeigt wieder das Wartebild. **💬 Text zeigen** blendet einen großen Kurztext für alle ein (z. B. „Ihr hört ein Heulen …“).
+4. Optional: **Bei Szenenwechsel automatisch die erste Karte der neuen Szene zeigen.**
+5. Am Tablet tippt man die Karte an, um sie zu vergrößern (zum Verschieben/Zoomen mit den Fingern).
+
+Gut zu wissen:
+- Karten werden für das Spielbrett automatisch verkleinert (unter 1 MB) und in Firebase abgelegt. Das reicht für eine gut lesbare Anzeige; die Originale bleiben bei dir und in Dropbox.
+- Was nicht freigegeben wurde, ist nie zu sehen. Szenentexte, GM-Notizen und Geheimnisse werden nie übertragen.
+- Die Karte muss auf dem Spielleiter-Gerät vorliegen (ggf. vorher ☁ synchronisieren).
+- **Tablets abschalten** (Tab 📱 Tablets) löscht auch die Karten und das Spielbrett aus Firebase.
+
 ### Spielleiter-Modus (Spielabend)
 Tabs oben:
 - **🎬 Szene:** aktuelle Szene mit Vorlesetext (goldener Kasten, mit Kopieren-Knopf) und GM-Notizen (rötlich, nur für dich). Mit ◀ ▶ oder der Liste (oder über „Wie geht es weiter?“) die Szene wechseln; „Als erledigt markieren“ hakt ab. Antippbare Chips öffnen NSCs/Orte der Szene. Der Kasten **➡️ Wie geht es weiter?** zeigt die möglichen Wege aus dem Flowchart; gesperrte sind mit 🔒 und dem Stand („1/3 Vorgänger besucht“) markiert. Karten der Szene erscheinen darunter.
@@ -164,6 +179,7 @@ Tabs oben:
 - **🎲 Würfel:** W4 bis W100, eigene Ausdrücke (`2W6+3`, `d20`, `4d6kh3` = die drei höchsten von vier W6, `2d20kl1` = der niedrigere von zwei W20). Der „Hauptwurf des Regelwerks“-Knopf nutzt den Standardwurf deines Regelwerks.
 - **🎒 Inventar:** Gruppen-Inventar (siehe 3b).
 - **📱 Tablets:** Spieler-Tablets zuschalten und zuordnen (siehe 3c).
+- **🗺️ Spielbrett:** Karten und Texte auf das Tischtablet schicken (siehe 3d).
 - **👥 Spieler:** Spieler anlegen/umbenennen, Zähler für Vorräte (− / +), Zustände, Notizen. „Alle Vorräte auffüllen“ für Rasten. Die Zahl der Spieler ist frei änderbar.
 - **🗺️ NSCs & Orte:** durchsuchbares Nachschlagewerk.
 - **📜 Regeln:** Regelübersicht zum Nachsehen am Tisch.
@@ -206,6 +222,8 @@ Deine Abenteuer bleiben bei Updates erhalten (sie liegen nicht in den Programmda
 | Bild lässt sich nicht hinzufügen („kein lesbares Bild“) | Anderes Format wählen (JPG, PNG, WebP funktionieren; HEIC nicht überall). |
 | Diagramm ist sehr klein oder wirkt leer | **⤢ Einpassen** antippen oder **🧭 Anordnen**. |
 | Tablet: „Keine Verbindung“ / Verbindungstest schlägt fehl | Firestore-Datenbank wurde nicht angelegt (Schritt C2.2) oder die Regeln fehlen/wurden nicht veröffentlicht (C2.3). Meldung „permission-denied“ = Regeln prüfen. |
+| Spielbrett/Tablet: „permission-denied“ oder „Firestore lehnt den Zugriff ab“ | Die Regeln in Firestore sind veraltet. Aktuellen Regeltext aus Abschnitt C2 (Schritt 3) einfügen und veröffentlichen. |
+| Spielbrett zeigt „Karte nicht verfügbar“ | Karte erneut mit ▶ Zeigen senden; prüfen, ob das Bild auf dem Gerät vorliegt (☁ synchronisieren). |
 | Tablet: „Spielraum nicht gefunden“ | Link stammt aus einer abgeschalteten Sitzung. Neuen Link kopieren (Tab 📱 Tablets). |
 | Tablet zeigt alte Werte | Internetverbindung des Tablets prüfen; Seite neu laden. Der Spielleiter-Rechner muss die Sitzung geöffnet haben (er sendet die Änderungen). |
 | App zeigt noch alte Version | Einstellungen → „Update erzwingen (Cache leeren)“. |
@@ -226,4 +244,4 @@ Bekannte Eigenheit: Wird dieselbe Sitzung auf zwei Geräten gleichzeitig bearbei
 
 ## 8 · Ausblick
 
-Spieler-Tablets gibt es seit 0.4.0. Als Nächstes geplant: das **Spielbrett-Tablet** in der Tischmitte (zeigt die Karten, die du an die Knoten gehängt hast, vom Spielleiter gesteuert, ohne GM-Inhalte), danach Charaktererschaffung am Tablet. Dropbox bleibt für Backups und große Dateien.
+Spieler-Tablets gibt es seit 0.4.0, das Spielbrett seit 0.5.0. Als Nächstes denkbar: Charaktererschaffung am Tablet, Würfeln und Lebenspunkte am Spieler-Tablet, aufdeckbare Kartenbereiche („Nebel des Krieges“), Töne und Effekte. Dropbox bleibt für Backups und große Dateien.

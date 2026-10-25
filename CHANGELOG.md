@@ -2,6 +2,21 @@
 
 Jede Änderung an der App wird hier festgehalten. Die aktuelle Version steht unten auf der Startseite und unter Einstellungen → App.
 
+## [0.5.0] – 2026-10-25 · Spielbrett-Tablet
+
+### Neu
+- **Spielbrett für die Tischmitte (zuschaltbar):** Ein Tablet zeigt nur, was der Spielleiter ausdrücklich freigibt: eine **Karte**, einen großen **Kurztext** oder ein **Wartebild**. Vollbild-Knopf, Antippen vergrößert die Karte, der Bildschirm bleibt wach.
+- **Neuer Spielleiter-Tab „🗺️ Spielbrett“:** Link für das Tablet, alle Karten der Szenen (aktuelle Szene zuerst) mit Vorschau und **▶ Zeigen**, **⬛ Leeren**, **💬 Text zeigen**. Optional zeigt die App bei Szenenwechsel automatisch die erste Karte der neuen Szene.
+- Karten werden für die Anzeige automatisch verkleinert (unter 1 MB) und nur bei Bedarf einmalig übertragen. „Tablets abschalten“ löscht Karten und Spielbrett wieder aus Firebase.
+- Verständlicher Hinweis, wenn Firestore wegen veralteter Regeln ablehnt.
+
+### Geändert / wichtig
+- **Die Firestore-Regeln müssen einmalig aktualisiert werden** (Admin-Anleitung C2, Schritt 3): Sie decken jetzt auch das Spielbrett ab. Ohne Aktualisierung zeigen Spielbrett-Funktionen „Firestore lehnt den Zugriff ab“. Die Spieler-Tablets sind davon nicht betroffen.
+
+### Bekannte Einschränkungen
+- Zoomen/Verschieben am Spielbrett nutzt die normale Fingergeste des Browsers (kein eigener „Nebel des Krieges“, keine Markierungen).
+- Das Spielbrett zeigt immer genau eine Karte. Mehrere Karten gleichzeitig sind nicht vorgesehen.
+
 ## [0.4.0] – 2026-10-25 · Phase 2: Spieler-Tablets
 
 ### Neu

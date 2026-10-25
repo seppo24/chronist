@@ -10,6 +10,7 @@ const routes = [
   [/^#\/adventure\/([^/]+)(?:\/(\w+))?$/, () => import('./views/workshop.js')],
   [/^#\/session\/([^/]+)(?:\/(\w+))?$/, () => import('./views/session.js')],
   [/^#\/play\/([\w-]+)(?:\/([\w-]+))?(?:\/([\w-]+))?$/, () => import('./views/play.js')],
+  [/^#\/board\/([\w-]+)(?:\/([\w-]+))?(?:\/([\w-]+))?$/, () => import('./views/board.js')],
   [/^#\/settings$/, () => import('./views/settings.js')],
   [/^#\/help(?:\/(\w+))?$/, () => import('./views/help.js')],
 ];
