@@ -337,3 +337,43 @@ body[data-route="board"] { background: #000; }
 .boardpick { display: flex; gap: .7rem; align-items: center; }
 .boardpick img { width: 84px; height: 60px; object-fit: cover; border-radius: 6px; background: #000; }
 .boardpick.on { border-color: var(--ok); }
+
+/* v0.6.0 – Tablet-Interaktion */
+.sheet-block.notice { border: 1px solid var(--gold); background: rgba(224,178,82,.08); }
+.sheet-block.ok { border: 1px solid var(--ok); color: var(--ok); }
+.btn.big { font-size: 1.25rem; padding: .8rem 1.2rem; margin-top: .5rem; }
+.bar-ctrl { display: inline-flex; align-items: center; gap: .6rem; }
+.bar-ctrl .step { min-width: 2.6rem; min-height: 2.6rem; font-size: 1.4rem; }
+.roll-result { margin-top: .8rem; text-align: center; }
+.roll-total { font-size: 3.4rem; font-weight: 800; color: var(--gold); }
+.stepper { display: flex; align-items: center; justify-content: center; gap: .5rem; }
+.stepper .step { min-width: 2.6rem; min-height: 2.6rem; font-size: 1.4rem; }
+.pool { margin: .3rem 0 .6rem; font-size: 1.1rem; }
+.pool.over { color: var(--err); }
+.bigin { width: 100%; font-size: 1.3rem; }
+.draftcard { border: 1px solid var(--gold); }
+.askrow { align-items: center; }
+.permrow { margin: .4rem 0; }
+
+/* v0.7.0 – Nebel des Krieges */
+.board-wrap { position: relative; display: inline-block; margin: auto; line-height: 0; max-width: 100%; max-height: 100%; }
+.board-wrap .board-img { display: block; max-width: 100vw; max-height: 100vh; }
+.board-scroll.zoomed .board-wrap .board-img { max-width: none; max-height: none; }
+.board-fog { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.fogpanel { display: grid; gap: .6rem; }
+.fogwrap { position: relative; display: inline-block; line-height: 0; max-width: 100%; touch-action: none; }
+.fogwrap img { display: block; max-width: 100%; max-height: 60vh; }
+.fogwrap canvas { position: absolute; inset: 0; width: 100%; height: 100%; cursor: crosshair; touch-action: none; }
+
+/* v0.8.0 – Effekte */
+.fx-flash { position: fixed; inset: 0; z-index: 9999; pointer-events: none; display: grid; place-items: center; animation: fxfade .9s ease-out forwards; }
+.fx-flash:has(.fx-text) { animation-duration: 2.6s; }
+.fx-red { background: radial-gradient(circle, rgba(255,40,60,.05) 30%, rgba(255,40,60,.55) 100%); }
+.fx-green { background: radial-gradient(circle, rgba(60,220,140,.05) 30%, rgba(60,220,140,.45) 100%); }
+.fx-violet { background: radial-gradient(circle, rgba(150,110,255,.05) 30%, rgba(150,110,255,.5) 100%); }
+.fx-gold { background: radial-gradient(circle, rgba(255,210,90,.05) 30%, rgba(255,210,90,.45) 100%); }
+.fx-dark { background: rgba(0,0,0,.7); }
+.fx-text { font-size: clamp(2rem, 7vw, 5rem); font-weight: 800; text-align: center; color: #fff; text-shadow: 0 2px 18px #000; padding: 2rem; }
+@keyframes fxfade { 0% { opacity: 0; } 12% { opacity: 1; } 100% { opacity: 0; } }
+.fx-toggle { position: fixed; right: .6rem; bottom: .6rem; z-index: 50; opacity: .8; }
+.fxpanel .row { margin-top: .4rem; }

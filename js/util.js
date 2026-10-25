@@ -28,6 +28,12 @@ function appendKids(el, kids) {
   }
 }
 
+/** Wie el.append(...), überspringt aber null/false (natives append würde „null“ als Text einfügen). */
+export function put(el, ...kids) {
+  appendKids(el, kids);
+  return el;
+}
+
 export function clear(el) {
   while (el.firstChild) el.removeChild(el.firstChild);
   return el;

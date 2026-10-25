@@ -70,7 +70,7 @@ export function newPlayer(adv, name) {
     const max = Number(r.max) || 0;
     resources[r.key] = { value: max, max };
   }
-  return { id: uid('pl'), name, character: '', resources, conditions: '', notes: '', attrs: {}, skillsText: '', playerNotes: '', tablet: null };
+  return { id: uid('pl'), name, character: '', resources, conditions: '', notes: '', attrs: {}, skillsText: '', background: '', playerNotes: '', tablet: null };
 }
 
 export function progress(adv) {
@@ -251,6 +251,11 @@ export const WORKSHOP_TOOLS = [
           type: 'array',
           description: 'Zustände (z. B. Verängstigt, Verflucht) mit Wirkung',
           items: { type: 'object', properties: { name: { type: 'string' }, effect: { type: 'string' } }, required: ['name', 'effect'] },
+        },
+        creation: {
+          type: 'object',
+          description: 'Optional: Charaktererschaffung am Tablet. points = Punkte, die auf die Grundwerte verteilt werden dürfen (über deren Minimum hinaus); note = kurzer Hinweis für Spieler.',
+          properties: { points: { type: 'number' }, note: { type: 'string' } },
         },
         combat: { type: 'string', description: 'Kampf-/Konfliktregeln in Kurzform (Markdown)' },
         magic: { type: 'string', description: 'Magie-/Spezialsystem in Kurzform (Markdown), falls vorhanden' },

@@ -28,6 +28,8 @@ js/dice.js            Würfelausdrücke
 js/flow.js            Handlungs-Flowchart (Logik, Anordnung, SVG)
 js/images.js          Karten/Bilder (Verkleinern, lokale Ablage, Anzeige)
 js/live.js            Firebase-Live-Verbindung (nur Spielerdaten) für Tablets
+js/fog.js             Nebel des Krieges (Raster-Aufdeckung)
+js/fx.js              Töne und Effekte (WebAudio, Bildschirm-Blitze)
 js/views/play.js      Spieler-Tablet (Charakterbogen live)
 js/views/board.js     Spielbrett-Tablet (Karte/Text, vom Spielleiter freigegeben)
 js/export.js          Regelwerk/Abenteuer als Markdown

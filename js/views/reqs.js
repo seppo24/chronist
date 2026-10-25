@@ -18,7 +18,7 @@ export function giveItem(ses, name, holder = '') {
  * ctx: { saveSes, addLog, onChange }  – onChange zeichnet die umgebende Ansicht neu.
  * Gibt null zurück, wenn die Szene keine Bedingungen hat.
  */
-export function reqControls(adv, ses, scene, { saveSes, addLog, onChange }) {
+export function reqControls(adv, ses, scene, { saveSes, addLog, onChange, tablets = null }) {
   const reqs = reqList(scene);
   if (!reqs.length) return null;
   const box = h('div', { class: 'reqbox' }, h('div', { class: 'muted small' }, 'Bedingungen für diese Szene'));
@@ -69,11 +69,25 @@ export function reqControls(adv, ses, scene, { saveSes, addLog, onChange }) {
         res ? h('button', {
           class: 'btn small', type: 'button',
           onclick: async () => { delete ses.rolls[r.id]; await done(); },
-        }, 'Zurücksetzen') : null].filter(Boolean));
+        }, 'Zurücksetzen') : null,
+        tablets ? tabletAsk(r, tablets, done) : null].filter(Boolean));
     }
     box.appendChild(row);
   }
   return box;
+}
+
+/** „📱 Am Tablet würfeln lassen“: Auswahl eines verbundenen Spielers und Senden der Anforderung. */
+function tabletAsk(r, tablets, done) {
+  const sel = h('select', { 'aria-label': 'Spieler am Tablet', 'data-ask-player': r.id }, tablets.players.map((p) => h('option', { value: p.id }, p.name)));
+  return h('span', { class: 'row gap wrap askrow' }, sel, h('button', {
+    class: 'btn small', type: 'button', 'data-act': 'ask-tablet',
+    onclick: async () => {
+      await tablets.send(sel.value, { reqId: r.id, label: r.label || 'Probe', expr: r.expr });
+      toast('Wurf am Tablet angefordert', 'ok', 2200);
+      await done();
+    },
+  }, '📱 Am Tablet würfeln lassen'));
 }
 
 export { hasItem };

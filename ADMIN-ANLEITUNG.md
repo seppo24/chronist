@@ -157,6 +157,20 @@ Voraussetzung: Firebase ist eingerichtet (Abschnitt C2). Jedes Tablet braucht nu
 
 Tipps: Die Seite hält den Bildschirm auf Tablets wach (wenn der Browser es erlaubt). Kein Wlan am Tisch? Dann geht es auch mit mobilen Daten, nur die Verbindung muss bestehen.
 
+#### 3c-2 · Würfeln, Vorräte und Charaktererschaffung am Tablet (neu in 0.6.0)
+
+Im Tab **📱 Tablets** stehen zwei Haken für die ganze Sitzung:
+- **Spieler dürfen am Tablet würfeln** (Standard: an): Das Tablet zeigt einen Würfelblock (Hauptwurf des Regelwerks, W4 bis W100, eigener Ausdruck). Jeder Wurf erscheint in deinem Protokoll.
+- **Spieler dürfen ihre Vorräte selbst ändern** (Standard: aus): Die Balken (z. B. Lebenspunkte) bekommen − und +. Sinnvoll für Mana, Munition oder wenn Spieler ihre Lebenspunkte selbst führen. Du siehst jede Änderung im Protokoll und kannst sie im Tab 👥 Spieler jederzeit korrigieren.
+
+**Wurf anfordern:** Hat eine Szene eine Würfel-Bedingung (Abschnitt 3b), erscheint beim gesperrten Weg „📱 Am Tablet würfeln lassen“. Wähle den Spieler (nur Spieler mit verbundenem Tablet stehen zur Auswahl) und tippe den Knopf. Der Spieler sieht die Aufforderung, würfelt, und das Ergebnis wird automatisch der Bedingung zugeordnet.
+
+**Charaktererschaffung:**
+1. Im Regelwerk können (über Claude oder im Regelwerk-Tab) `creation: { points: 4, note: "…" }` stehen: Anzahl der Punkte, die über das Minimum der Grundwerte hinaus verteilt werden dürfen. Ohne Angabe gibt es keinen Pool, nur Min/Max.
+2. Tab 📱 Tablets → beim Spieler **✏️ Erschaffung erlauben**. Am Tablet erscheint der Knopf „Charakter erschaffen“.
+3. Der Spieler wählt Name, Werte, Fertigkeiten, Hintergrund und reicht ein. Bei dir erscheint die Karte **📝 Entwurf**.
+4. **✔ Übernehmen** schreibt alles in den Spielerbogen und schließt die Erschaffung. **↩ Zurückgeben** (mit Anmerkung) lässt den Spieler überarbeiten; sein Entwurf bleibt erhalten.
+
 ### 3d · Spielbrett-Tablet (neu in 0.5.0)
 
 Ein Tablet in der Tischmitte zeigt nur, was **du ausdrücklich freigibst**: eine Karte, einen kurzen Text oder ein Wartebild. Voraussetzung: Firebase ist eingerichtet, **die Regeln aus Abschnitt C2 sind auf dem aktuellen Stand** (siehe Schritt 3).
@@ -166,11 +180,23 @@ Ein Tablet in der Tischmitte zeigt nur, was **du ausdrücklich freigibst**: eine
 4. Optional: **Bei Szenenwechsel automatisch die erste Karte der neuen Szene zeigen.**
 5. Am Tablet tippt man die Karte an, um sie zu vergrößern (zum Verschieben/Zoomen mit den Fingern).
 
+**Nebel des Krieges (neu in 0.7.0):** Unter der Statuszeile erscheint bei einer gezeigten Karte der Bereich **🌫️ Nebel des Krieges**. Mit **Nebel aktiv** wird die Karte am Spielbrett schwarz. Tippe in der Vorschau auf Felder (oder wische darüber), um sie aufzudecken; ein aufgedecktes Feld verdeckst du mit erneutem Tippen. Die **Rastergröße** (z. B. 12 × 8) wählst du passend zur Karte; eine neue Größe beginnt den Nebel von vorn. Der Nebel wird je Karte gemerkt und mit der Sitzung gespeichert. Typischer Einsatz: Dungeon-Karte, bei der die Gruppe Raum für Raum vorankommt.
+
 Gut zu wissen:
 - Karten werden für das Spielbrett automatisch verkleinert (unter 1 MB) und in Firebase abgelegt. Das reicht für eine gut lesbare Anzeige; die Originale bleiben bei dir und in Dropbox.
 - Was nicht freigegeben wurde, ist nie zu sehen. Szenentexte, GM-Notizen und Geheimnisse werden nie übertragen.
 - Die Karte muss auf dem Spielleiter-Gerät vorliegen (ggf. vorher ☁ synchronisieren).
 - **Tablets abschalten** (Tab 📱 Tablets) löscht auch die Karten und das Spielbrett aus Firebase.
+
+### 3e · Töne und Effekte (neu in 0.8.0)
+
+Für Stimmung am Tisch: Klänge und kurze Bildschirm-Blitze auf den Tablets.
+1. Auf **jedem** Spieler-Tablet und auf dem Spielbrett einmal unten rechts **🔊 Töne aktivieren** antippen. Das ist nötig, weil Browser Ton sonst nicht erlauben. Nach dem Neuladen einer Seite muss das erneut getippt werden.
+2. Tab **📱 Tablets**, Bereich **🔊 Töne und Effekte**: Empfänger wählen (alle, nur Spielbrett oder ein Spieler), optional einen Text eintippen, dann den Effekt antippen. Du hörst den Klang auch selbst.
+3. Ohne dein Zutun reagieren die Spieler-Tablets auf Lebenspunkte (Treffer, Heilung, Niedergeschlagen) und aufs Würfeln.
+4. Zum Stummschalten den Ton-Knopf am jeweiligen Tablet antippen (oder die Lautstärke am Gerät).
+
+Wenn nichts zu hören ist: Gerät nicht auf lautlos? Ton-Knopf zeigt „Ton an“? Bei iPads zusätzlich den seitlichen Stumm-Schalter prüfen.
 
 ### Spielleiter-Modus (Spielabend)
 Tabs oben:
@@ -180,6 +206,7 @@ Tabs oben:
 - **🎒 Inventar:** Gruppen-Inventar (siehe 3b).
 - **📱 Tablets:** Spieler-Tablets zuschalten und zuordnen (siehe 3c).
 - **🗺️ Spielbrett:** Karten und Texte auf das Tischtablet schicken (siehe 3d).
+- **🔊 Töne und Effekte** liegen im Tab 📱 Tablets (siehe 3e).
 - **👥 Spieler:** Spieler anlegen/umbenennen, Zähler für Vorräte (− / +), Zustände, Notizen. „Alle Vorräte auffüllen“ für Rasten. Die Zahl der Spieler ist frei änderbar.
 - **🗺️ NSCs & Orte:** durchsuchbares Nachschlagewerk.
 - **📜 Regeln:** Regelübersicht zum Nachsehen am Tisch.
@@ -244,4 +271,4 @@ Bekannte Eigenheit: Wird dieselbe Sitzung auf zwei Geräten gleichzeitig bearbei
 
 ## 8 · Ausblick
 
-Spieler-Tablets gibt es seit 0.4.0, das Spielbrett seit 0.5.0. Als Nächstes denkbar: Charaktererschaffung am Tablet, Würfeln und Lebenspunkte am Spieler-Tablet, aufdeckbare Kartenbereiche („Nebel des Krieges“), Töne und Effekte. Dropbox bleibt für Backups und große Dateien.
+Spieler-Tablets gibt es seit 0.4.0, das Spielbrett seit 0.5.0. Töne und Effekte gibt es seit 0.8.0. Als Nächstes denkbar: QR-Codes für die Tablet-Links, weitere Bedingungstypen im Flowchart. Dropbox bleibt für Backups und große Dateien.

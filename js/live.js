@@ -4,6 +4,7 @@
 // Alles andere (GM-Notizen, Geheimnisse, Szenen, Regeln des Spielleiters, Sitzungsprotokoll) bleibt auf den Geräten des
 // Spielleiters und in Dropbox. Der Raumcode ist lang und zufällig; wer ihn nicht kennt, kommt nicht an die Daten.
 import { getSettings, saveSettings } from './store.js';
+import { uid } from './util.js';
 
 const SDK_VERSION = '10.14.1';
 const CDN = `https://www.gstatic.com/firebasejs/${SDK_VERSION}`;
@@ -94,6 +95,7 @@ export function publicPlayer(adv, ses, p) {
     skills: clean(p.skillsText),
     attrs: (rs.attributes || []).map((a) => ({
       key: a.key, name: clean(a.name), description: clean(a.description),
+      min: Number.isFinite(Number(a.min)) ? Number(a.min) : null, max: Number.isFinite(Number(a.max)) ? Number(a.max) : null,
       value: p.attrs && p.attrs[a.key] !== undefined && p.attrs[a.key] !== '' ? Number(p.attrs[a.key]) : null,
     })),
     resources: (rs.resources || []).filter((r) => p.resources && p.resources[r.key]).map((r) => ({
@@ -101,8 +103,18 @@ export function publicPlayer(adv, ses, p) {
     })),
     items: (ses.items || []).filter((i) => i.holder === p.id).map((i) => clean(i.name)),
     groupItems: (ses.items || []).filter((i) => !i.holder).map((i) => clean(i.name)),
+    background: clean(p.background),
+    request: p.rollRequest ? { reqId: clean(p.rollRequest.reqId), label: clean(p.rollRequest.label), expr: clean(p.rollRequest.expr) } : null,
     rule: clean(rs.name),
     adventure: clean(adv.title),
+    dice: { primary: clean(rs.dice && rs.dice.primary), how: clean(rs.dice && rs.dice.how_it_works) },
+    perms: { dice: !(ses.room && ses.room.perms && ses.room.perms.dice === false), res: !!(ses.room && ses.room.perms && ses.room.perms.res) },
+    create: {
+      open: !!p.createOpen, status: clean(p.createStatus), comment: clean(p.createComment),
+      points: rs.creation && Number(rs.creation.points) > 0 ? Number(rs.creation.points) : null,
+      note: clean(rs.creation && rs.creation.note),
+      current: p.createOpen ? (p.draft ? { character: clean(p.draft.character), attrs: p.draft.attrs || {}, skills: clean(p.draft.skills), background: clean(p.draft.background) } : { character: clean(p.character), attrs: p.attrs || {}, skills: clean(p.skillsText), background: clean(p.background) }) : null,
+    },
   };
 }
 
@@ -139,7 +151,7 @@ async function startLiveNow(adv, ses, hooks = {}) {
     snap.forEach((d) => {
       const v = d.data();
       state.known.add(d.id);
-      map[d.id] = { claim: v.claim || null, notes: v.playerNotes, notesAt: v.playerNotesAt || 0 };
+      map[d.id] = { claim: v.claim || null, notes: v.playerNotes, notesAt: v.playerNotesAt || 0, request: v.request || null };
     });
     state.claims = map;
     if (state.hooks.onPlayers) state.hooks.onPlayers(map);
@@ -150,6 +162,23 @@ async function startLiveNow(adv, ses, hooks = {}) {
         if (state.hooks.onNotes) state.hooks.onNotes(pid, v.notes);
       }
     }
+    // Ereignisse der Tablets (Wurf, Vorrat, Charakterentwurf): jedes nur einmal verarbeiten
+    let changed = false;
+    snap.forEach((d) => {
+      const v = d.data();
+      const pl = state.ses.players.find((x) => x.id === d.id);
+      if (!pl) return;
+      pl.seen = pl.seen || {};
+      for (const [kind, field] of [['roll', 'lastRoll'], ['res', 'resEdit'], ['draft', 'charDraft']]) {
+        const ev = v[field];
+        if (ev && ev.id && pl.seen[kind] !== ev.id) {
+          pl.seen[kind] = ev.id;
+          changed = true;
+          if (state.hooks.onEvent) state.hooks.onEvent(pl, kind, ev);
+        }
+      }
+    });
+    if (changed && state.hooks.onChanged) state.hooks.onChanged();
   });
 
   const api = {
@@ -176,13 +205,22 @@ async function startLiveNow(adv, ses, hooks = {}) {
     claims: () => state.claims,
     /** Spielbrett: Bild (verkleinert, als Data-URL) bereitstellen und Anzeige setzen. */
     async putBoardImage(id, name, d) { await fs.setDoc(fs.doc(db, 'rooms', code, 'boardimg', id), { name: String(name || ''), data: d.data, w: d.w, h: d.h }); },
-    async setBoard(b) { await fs.setDoc(fs.doc(db, 'rooms', code, 'board', 'current'), { mode: b.mode, imageId: b.imageId || '', name: b.name || '', text: b.text || '', rev: Date.now() }); },
+    async setRequest(pid, req) { await fs.setDoc(fs.doc(db, 'rooms', code, 'players', pid), { request: req || null }, { merge: true }); },
+    /** Effekt senden: target = 'all' | 'board' | Spieler-ID. Jeder Effekt hat eine neue ID, damit er genau einmal abgespielt wird. */
+    async sendFx(target, type, text = '') {
+      const fx = { id: uid('fx'), type: String(type), text: String(text || '').slice(0, 80), t: Date.now() };
+      if (target === 'board' || target === 'all') await fs.setDoc(fs.doc(db, 'rooms', code, 'board', 'fx'), fx);
+      if (target === 'all') { for (const p of state.ses.players) await fs.setDoc(fs.doc(db, 'rooms', code, 'players', p.id), { fx }, { merge: true }); }
+      else if (target !== 'board') await fs.setDoc(fs.doc(db, 'rooms', code, 'players', target), { fx }, { merge: true });
+    },
+    async setBoard(b) { await fs.setDoc(fs.doc(db, 'rooms', code, 'board', 'current'), { mode: b.mode, imageId: b.imageId || '', name: b.name || '', text: b.text || '', fog: b.fog && b.fog.on ? { cols: b.fog.cols, rows: b.fog.rows, bits: b.fog.bits } : null, rev: Date.now() }); },
     /** Beendet die Verbindung und löscht alle Daten dieses Raums aus Firebase. */
     async close() {
       api.stop();
       for (const id of new Set([...state.known, ...state.ses.players.map((p) => p.id)])) { try { await fs.deleteDoc(fs.doc(db, 'rooms', code, 'players', id)); } catch { /* egal */ } }
       for (const id of state.ses.room.boardImages || []) { try { await fs.deleteDoc(fs.doc(db, 'rooms', code, 'boardimg', id)); } catch { /* egal */ } }
       try { await fs.deleteDoc(fs.doc(db, 'rooms', code, 'board', 'current')); } catch { /* egal */ }
+      try { await fs.deleteDoc(fs.doc(db, 'rooms', code, 'board', 'fx')); } catch { /* egal */ }
       try { await fs.deleteDoc(roomRef); } catch { /* egal */ }
     },
     stop() { if (state.unsub) { state.unsub(); state.unsub = null; } clearTimeout(state.timer); if (current && current.code === code) current = null; },
@@ -199,6 +237,7 @@ export function liveNotify(adv, ses) {
 }
 
 export function liveActive() { return !!current; }
+export function currentClaims(code) { return current && current.code === code ? current.claims : {}; }
 
 // ---------------------------------------------------------------- Tablet-Seite
 
@@ -237,6 +276,11 @@ export async function boardWatch(code, cb) {
   return fs.onSnapshot(fs.doc(db, 'rooms', code, 'board', 'current'), (snap) => cb(snap.exists() ? snap.data() : null));
 }
 
+export async function boardFxWatch(code, cb) {
+  const { db, fs } = await load();
+  return fs.onSnapshot(fs.doc(db, 'rooms', code, 'board', 'fx'), (snap) => cb(snap.exists() ? snap.data() : null));
+}
+
 export async function boardImage(code, id) {
   const { db, fs } = await load();
   const snap = await fs.getDoc(fs.doc(db, 'rooms', code, 'boardimg', id));
@@ -254,4 +298,10 @@ export function friendlyError(e) {
   const m = String((e && (e.code || e.message)) || e);
   if (/permission|PERMISSION/.test(m)) return 'Firestore lehnt den Zugriff ab. Bitte die Regeln aktualisieren (Admin-Anleitung, Abschnitt C2, Schritt 3).';
   return m;
+}
+
+/** Tablet schreibt ein Ereignis (Wurf, Vorratsänderung, Charakterentwurf) in sein Dokument. */
+export async function tabletSend(code, pid, field, data) {
+  const { db, fs } = await load();
+  await fs.setDoc(fs.doc(db, 'rooms', code, 'players', pid), { [field]: { ...data, id: uid(field), t: Date.now() } }, { merge: true });
 }

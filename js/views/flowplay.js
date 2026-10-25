@@ -13,7 +13,7 @@ const STATE_TEXT = {
 };
 
 /** enter(id) wechselt die Szene (inkl. Rückfrage bei gesperrten); saveSes() speichert die Sitzung. */
-export function playFlow(panel, adv, ses, { enter, saveSes, addLog = () => {} }) {
+export function playFlow(panel, adv, ses, { enter, saveSes, addLog = () => {}, tabletOpts = () => null }) {
   if (!adv.scenes.length) {
     panel.appendChild(h('div', { class: 'empty' }, 'Dieses Abenteuer hat noch keine Szenen.'));
     return;
@@ -49,7 +49,7 @@ export function playFlow(panel, adv, ses, { enter, saveSes, addLog = () => {} })
     if (sc.summary) card.appendChild(h('div', { class: 'md', html: md(sc.summary) }));
     card.appendChild(imageStrip(sc, async () => {}, { editable: false }));
     if (st.state !== 'current' && st.state !== 'visited') {
-      const rc = reqControls(adv, ses, sc, { saveSes, addLog, onChange: () => { flow.draw(); drawInfo(); } });
+      const rc = reqControls(adv, ses, sc, { saveSes, addLog, onChange: () => { flow.draw(); drawInfo(); }, tablets: tabletOpts() });
       if (rc) card.appendChild(rc);
     }
     const row = h('div', { class: 'row gap wrap' });

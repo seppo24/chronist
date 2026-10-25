@@ -2,6 +2,47 @@
 
 Jede Änderung an der App wird hier festgehalten. Die aktuelle Version steht unten auf der Startseite und unter Einstellungen → App.
 
+## [0.8.0] – 2026-10-25 · Töne und Effekte
+
+### Neu
+- **Töne und Effekte:** Im Tab „📱 Tablets“ gibt es den Bereich „🔊 Töne und Effekte“. Neun Effekte (Schwerthieb, Treffer, Heilung, Zauber, Alarm, Gong, Erfolg, Niedergeschlagen, Würfeln) spielen einen Klang und blenden kurz einen farbigen Bildschirm-Blitz ein. Empfänger: alle Tablets samt Spielbrett, nur das Spielbrett oder ein einzelner Spieler. Optional mit großem Text auf dem Bildschirm („Hinterhalt!“).
+- **Automatisch am Spieler-Tablet:** Sinken die Lebenspunkte (oder ein anderer Vorrat), gibt es Treffer-Klang und roten Blitz; steigen sie, Heil-Klang und grünen Blitz; bei 0 den Niedergeschlagen-Effekt. Beim Würfeln rasselt der Würfel.
+- Alle Klänge werden im Gerät erzeugt (keine Audiodateien, keine Downloads, funktioniert offline).
+- Knopf „🔊 Töne aktivieren“ unten rechts am Tablet und am Spielbrett (Browser verlangen eine Berührung, bevor Ton erlaubt ist). Danach lässt sich der Ton dort mit demselben Knopf stumm schalten.
+- Ein alter Effekt wird beim Öffnen oder Neuladen einer Seite nicht erneut abgespielt. „Tablets abschalten“ löscht den Effekt ebenfalls aus Firebase.
+
+### Hinweise
+- Neue Datei js/fx.js. Es sind keine neuen Firestore-Regeln nötig (die Regeln aus Anleitung C2 genügen).
+
+## [0.7.0] – 2026-10-25 · Nebel des Krieges
+
+### Neu
+- **Nebel des Krieges auf dem Spielbrett:** Für jede Karte lässt sich ein Raster aktivieren (8×6, 12×8, 16×12 oder 24×16 Felder). Auf dem Spielbrett ist die Karte dann schwarz verdeckt; der Spielleiter deckt Felder auf, indem er in der Vorschau tippt oder darüber wischt (nochmal tippen verdeckt wieder). „Alles aufdecken“ und „Alles verdecken“ gibt es auch.
+- Das Spielbrett aktualisiert nur den Nebel, das Bild wird dabei nicht neu geladen (kein Flackern). Der Nebel bleibt je Karte erhalten: Wird sie später erneut gezeigt, ist alles noch aufgedeckt, wie es war. Er wird mit der Sitzung gespeichert.
+- Der Nebel ist wirklich blickdicht: Die Spieler sehen verdeckte Bereiche nicht, auch nicht abgedunkelt. (Hinweis: Das Bild selbst liegt in Firebase; verdeckt wird nur die Anzeige auf dem Tablet.)
+
+### Bekannte Einschränkungen
+- Ein Raster pro Karte, keine freien Formen oder Lichtkegel.
+- Bei Änderung der Rastergröße beginnt der Nebel dieser Karte von vorn (alles verdeckt).
+
+## [0.6.0] – 2026-10-25 · Spieler-Tablets werden interaktiv
+
+### Neu
+- **Würfeln am Tablet:** Hauptwurf des Regelwerks, W4 bis W100 und eigene Ausdrücke (z. B. 2W6+1). Das Ergebnis steht groß auf dem Tablet und erscheint mit Namen im Protokoll des Spielleiters. Pro Sitzung abschaltbar („Spieler dürfen am Tablet würfeln“).
+- **Wurf anfordern:** Bei einer Würfel-Bedingung einer Szene gibt es „📱 Am Tablet würfeln lassen“. Der gewählte Spieler sieht die Aufforderung, würfelt mit einem Tipp, und das Ergebnis wird automatisch der Bedingung zugeordnet (Szene wird frei oder bleibt gesperrt).
+- **Vorräte am Tablet ändern:** Auf Wunsch (Haken „Spieler dürfen ihre Vorräte selbst ändern“, standardmäßig aus) zeigen die Balken − / +. Änderungen erscheinen beim Spielleiter und im Protokoll.
+- **Charaktererschaffung am Tablet:** Der Spielleiter erlaubt sie pro Spieler („✏️ Erschaffung erlauben“). Der Spieler vergibt Name, Grundwerte (mit Punktepool und Min/Max aus dem Regelwerk), Fertigkeiten/Ausrüstung und Hintergrund und reicht den Entwurf ein. Der Spielleiter sieht ihn und kann **übernehmen** oder mit Anmerkung **zurückgeben** (der Entwurf bleibt zum Überarbeiten erhalten). Der Hintergrund erscheint danach auf dem Bogen.
+- Regelwerke können `creation` enthalten (`points`, `note`); Claude kennt das Feld und legt es beim Regelwerk an, wenn es passt.
+- Das Tablet bleibt bei schnellen Tipps auf − / + stabil (kein Zurückspringen).
+
+### Behoben
+- Auf dem Tablet konnte an einzelnen Stellen das Wort „null“ erscheinen. Behoben.
+
+### Bekannte Einschränkungen
+- Würfe und Vorratsänderungen vom Tablet kommen nur an, wenn der Spielleiter-Rechner die Sitzung geöffnet hat (er verarbeitet sie).
+- Die Charaktererschaffung kennt keine Klassen/Auswahllisten, nur Name, Werte mit Punktepool und Freitext.
+- Töne und Effekte, Nebel des Krieges folgen in den nächsten Versionen.
+
 ## [0.5.0] – 2026-10-25 · Spielbrett-Tablet
 
 ### Neu

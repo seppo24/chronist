@@ -7,11 +7,13 @@ import { createChat } from '../chat.js';
 import { itemDetails, subtitle } from './collection.js';
 import { rollExpr, describeRoll, parseDice, extremes } from '../dice.js';
 import { rulesetToMd } from '../export.js';
-import { sceneById, outLinks, sceneStatus, ensureFlowState, hasFlow, lockReason } from '../flow.js';
+import { sceneById, outLinks, sceneStatus, ensureFlowState, hasFlow, lockReason, reqList, rollPasses } from '../flow.js';
 import { reqControls, giveItem } from './reqs.js';
 import { imageStrip, imageToDataUrl, getImageUrl } from '../images.js';
 import * as live from '../live.js';
+import { FOG_SIZES, normFog, newFog, cellOf, setBit, allBits, revealedCount, drawFog } from '../fog.js';
 import { playFlow } from './flowplay.js';
+import { EFFECTS, playEffect, unlock as fxUnlock } from '../fx.js';
 
 const TABS = [
   ['scene', '🎬 Szene'],
@@ -50,11 +52,65 @@ export async function render(main, [id, tabParam], ctx) {
   ensureFlowState(ses);
 
   // Live-Verbindung zu den Spieler-Tablets (nur wenn für diese Sitzung zugeschaltet)
-  const liveUi = { onPlayers: null };
-  const liveHooks = {
-    onPlayers: (m) => { if (liveUi.onPlayers) liveUi.onPlayers(m); },
-    onNotes: () => { saveItem('sessions', ses); },
+  const liveUi = { onPlayers: null, sceneRedraw: null };
+  let lastClaims = ses.room && ses.room.on ? live.currentClaims(ses.room.code) : {};
+  /** Für „Am Tablet würfeln lassen“: verbundene Spieler und Sendefunktion (null, wenn keine Tablets laufen). */
+  const tabletOpts = () => {
+    if (!(ses.room && ses.room.on && live.getConfig())) return null;
+    const players = ses.players.filter((p) => lastClaims[p.id] && lastClaims[p.id].claim).map((p) => ({ id: p.id, name: p.character || p.name }));
+    if (!players.length) return null;
+    return {
+      players,
+      send: async (pid, req) => {
+        const pl = ses.players.find((x) => x.id === pid);
+        if (pl) { pl.rollRequest = req; addLog(`Wurf angefordert bei ${pl.name}: ${req.label} (${req.expr})`, 'note'); }
+        await saveSes();
+      },
+    };
   };
+  const liveHooks = {
+    onPlayers: (m) => {
+      const before = JSON.stringify(Object.keys(lastClaims).filter((k) => lastClaims[k].claim).sort());
+      lastClaims = m;
+      if (liveUi.onPlayers) liveUi.onPlayers(m);
+      if (liveUi.sceneRedraw && before !== JSON.stringify(Object.keys(m).filter((k) => m[k].claim).sort())) liveUi.sceneRedraw();
+    },
+    onNotes: () => { saveItem('sessions', ses); },
+    onChanged: () => { saveSes(); },
+    onEvent: (pl, kind, ev) => handleTabletEvent(pl, kind, ev),
+  };
+
+  /** Ereignisse von Spieler-Tablets: Wurf, Vorratsänderung, Charakterentwurf. */
+  function handleTabletEvent(pl, kind, ev) {
+    const who = pl.character || pl.name || 'Spieler';
+    if (kind === 'roll') {
+      addLog(`🎲 ${who} würfelt${ev.label ? ` „${ev.label}“` : ''}: ${ev.detail || ev.expr} → ${ev.total}`, 'roll');
+      toast(`🎲 ${who}: ${ev.total}`, 'info', 3500);
+      if (ev.reqId) {
+        const r = adv.scenes.flatMap((s) => reqList(s)).find((x) => x.id === ev.reqId);
+        if (r && r.type === 'roll') {
+          const ok = rollPasses(r, Number(ev.total));
+          ses.rolls = ses.rolls || {};
+          ses.rolls[r.id] = { total: Number(ev.total), ok, expr: ev.detail || ev.expr, manual: false, by: who, t: new Date().toISOString() };
+          addLog(`Wurf „${r.label || 'Probe'}“ von ${who}: ${ev.total} ${ok ? 'geschafft' : 'misslungen'}`, 'roll');
+          pl.rollRequest = null;
+        }
+      }
+    } else if (kind === 'res') {
+      const rv = pl.resources && pl.resources[ev.key];
+      if (rv) {
+        rv.value = Math.max(0, Math.min(rv.max, Math.round(Number(ev.value) || 0)));
+        const name = (adv.ruleset?.resources || []).find((x) => x.key === ev.key)?.name || ev.key;
+        addLog(`${who} setzt ${name} auf ${rv.value}/${rv.max}`, 'note');
+      }
+    } else if (kind === 'draft') {
+      pl.draft = { character: ev.character || '', attrs: ev.attrs || {}, skills: ev.skills || '', background: ev.background || '', t: ev.t };
+      pl.createStatus = 'eingereicht';
+      pl.createComment = '';
+      addLog(`${who} hat einen Charakterentwurf eingereicht`, 'note');
+      toast(`📝 Charakterentwurf von ${pl.name}`, 'ok', 5000);
+    }
+  }
   if (ses.room && ses.room.on && live.getConfig()) live.startLive(adv, ses, liveHooks).catch((e) => console.warn('Live:', e));
 
   /** Live-Raum (für Tablets und Spielbrett) anlegen. */
@@ -76,14 +132,19 @@ export async function render(main, [id, tabParam], ctx) {
       ses.room.boardImages.push(im.id);
     }
     ses.room.board = { mode: 'image', imageId: im.id, name: im.name || sceneName || '' };
-    await api.setBoard(ses.room.board);
+    await boardPush();
+  };
+  const fogFor = (imageId) => normFog(ses.room && ses.room.fog && ses.room.fog[imageId]);
+  /** Aktuellen Spielbrett-Zustand (inkl. Nebel der gezeigten Karte) an die Tablets senden. */
+  const boardPush = async () => {
+    const api = await live.startLive(adv, ses, liveHooks);
+    const b = ses.room.board || { mode: 'blank' };
+    await api.setBoard({ ...b, fog: b.mode === 'image' ? fogFor(b.imageId) : null });
     await saveSes();
   };
   const boardSet = async (b) => {
-    const api = await live.startLive(adv, ses, liveHooks);
     ses.room.board = b;
-    await api.setBoard(b);
-    await saveSes();
+    await boardPush();
   };
 
   /** Szene betreten. Gesperrte Szenen nur nach Rückfrage (dann gilt sie als vom Spielleiter freigegeben). */
@@ -239,7 +300,7 @@ export async function render(main, [id, tabParam], ctx) {
             onclick: async () => { if (await enterScene(target.id)) draw(); },
           }, h('span', { class: 'grow' }, h('strong', {}, target.name), l.label ? h('span', { class: 'muted small block' }, l.label) : null), h('span', { class: 'small' }, info)));
           if (st.state !== 'visited' && st.state !== 'current') {
-            const rc = reqControls(adv, ses, target, { saveSes, addLog, onChange: draw });
+            const rc = reqControls(adv, ses, target, { saveSes, addLog, onChange: draw, tablets: tabletOpts() });
             if (rc) box.appendChild(rc);
           }
         }
@@ -255,12 +316,13 @@ export async function render(main, [id, tabParam], ctx) {
             h('span', { class: 'muted small' }, s.act || ''))))));
     };
     draw();
-    return;
+    liveUi.sceneRedraw = draw;
+    return () => { liveUi.sceneRedraw = null; };
   }
 
   // ---------------------------------------------------------------- Weg (Flowchart)
   if (tab === 'flow') {
-    playFlow(panel, adv, ses, { enter: enterScene, saveSes, addLog });
+    playFlow(panel, adv, ses, { enter: enterScene, saveSes, addLog, tabletOpts });
     return;
   }
 
@@ -482,7 +544,30 @@ export async function render(main, [id, tabParam], ctx) {
               ses.room = null; await saveSes(); draw();
             },
           }, 'Tablets abschalten')),
+        h('div', { class: 'row gap wrap permrow' },
+          h('label', { class: 'inline' }, h('input', { type: 'checkbox', 'data-perm': 'dice', checked: !(ses.room.perms && ses.room.perms.dice === false), onchange: async (e) => { ses.room.perms = { ...(ses.room.perms || {}), dice: e.target.checked }; await saveSes(); } }), ' Spieler dürfen am Tablet würfeln'),
+          h('label', { class: 'inline' }, h('input', { type: 'checkbox', 'data-perm': 'res', checked: !!(ses.room.perms && ses.room.perms.res), onchange: async (e) => { ses.room.perms = { ...(ses.room.perms || {}), res: e.target.checked }; await saveSes(); } }), ' Spieler dürfen ihre Vorräte (z. B. Lebenspunkte) selbst ändern')),
         h('p', { class: 'muted small' }, 'Jedes Tablet öffnet den Link und tippt auf seinen Namen, oder du schickst jedem Spieler seinen eigenen Link (🔗 pro Zeile).')));
+      const fxTarget = h('select', { 'aria-label': 'Empfänger des Effekts', 'data-fx': 'target' },
+        h('option', { value: 'all' }, 'Alle Tablets + Spielbrett'), h('option', { value: 'board' }, 'Nur Spielbrett'),
+        ses.players.map((p) => h('option', { value: p.id }, p.character || p.name || 'Spieler')));
+      const fxText = h('input', { type: 'text', maxlength: 80, placeholder: 'Optionaler Text auf dem Bildschirm, z. B. „Hinterhalt!“', 'aria-label': 'Effekttext', 'data-fx': 'text' });
+      panel.appendChild(h('div', { class: 'card fxpanel' },
+        h('h3', {}, '🔊 Töne und Effekte'),
+        h('p', { class: 'muted small' }, 'Spielt einen Klang mit Bildschirm-Blitz auf den gewählten Tablets. Tablets müssen einmal „Töne aktivieren“ angetippt haben.'),
+        h('div', { class: 'row gap wrap' }, fxTarget, fxText),
+        h('div', { class: 'row gap wrap' }, EFFECTS.map((e) => h('button', {
+          class: 'btn small', type: 'button', 'data-fx-send': e.id,
+          onclick: async () => {
+            try {
+              fxUnlock();
+              const api = await live.startLive(adv, ses, liveHooks);
+              await api.sendFx(fxTarget.value, e.id, fxText.value.trim());
+              playEffect(e.id, fxText.value.trim());
+              toast(`${e.label} gesendet`, 'ok', 1500);
+            } catch (err) { toast(live.friendlyError(err), 'err', 5000); }
+          },
+        }, e.label)))));
       if (!ses.players.length) panel.appendChild(h('div', { class: 'empty' }, 'Noch keine Spieler. Lege sie im Tab „👥 Spieler“ an.'));
       for (const p of ses.players) {
         const c = (claims[p.id] || {}).claim;
@@ -490,10 +575,45 @@ export async function render(main, [id, tabParam], ctx) {
           h('div', { class: 'grow' }, h('strong', {}, p.name || 'Spieler'), p.character ? h('span', { class: 'muted small block' }, p.character) : null),
           h('span', { class: `chip ${c ? 'ok' : ''}`, 'data-claim': c ? 'yes' : 'no' }, c ? `📱 ${c.name || 'Tablet'} verbunden` : '○ noch kein Tablet'),
           h('button', { class: 'btn small', type: 'button', 'data-act': 'copy-player', onclick: () => copy(live.roomLink(code, p.id), `Link für ${p.name} kopiert`) }, '🔗 Link'),
+          h('button', {
+            class: 'btn small', type: 'button', 'data-act': 'create-toggle',
+            onclick: async () => { p.createOpen = !p.createOpen; if (p.createOpen && p.createStatus !== 'eingereicht') p.createStatus = 'offen'; await saveSes(); draw(); },
+          }, p.createOpen ? '✏️ Erschaffung schließen' : '✏️ Erschaffung erlauben'),
           c ? h('button', {
             class: 'btn small', type: 'button', 'data-act': 'release',
             onclick: async () => { try { const api = await live.startLive(adv, ses, liveHooks); await api.release(p.id); } catch (e) { toast(e.message, 'err'); } },
           }, 'Freigeben') : null));
+        if (p.draft && p.createStatus === 'eingereicht') {
+          const d = p.draft;
+          const attrDefs = adv.ruleset?.attributes || [];
+          const comment = h('input', { type: 'text', placeholder: 'Anmerkung für den Spieler (bei „Zurückgeben“)', 'aria-label': `Anmerkung für ${p.name}` });
+          panel.appendChild(h('div', { class: 'card draftcard', 'data-draft': p.id },
+            h('h3', {}, `📝 Entwurf von ${p.name}`),
+            h('p', {}, h('strong', {}, d.character || '(ohne Namen)')),
+            attrDefs.length ? h('p', {}, attrDefs.map((a) => `${a.name} ${d.attrs && d.attrs[a.key] !== undefined ? d.attrs[a.key] : '–'}`).join(' · ')) : null,
+            d.skills ? h('p', { class: 'sheet-text' }, `Fertigkeiten: ${d.skills}`) : null,
+            d.background ? h('p', { class: 'sheet-text' }, `Hintergrund: ${d.background}`) : null,
+            h('div', { class: 'row gap wrap' }, comment,
+              h('button', {
+                class: 'btn small primary', type: 'button', 'data-act': 'draft-accept',
+                onclick: async () => {
+                  p.character = d.character || p.character;
+                  p.attrs = { ...(p.attrs || {}), ...(d.attrs || {}) };
+                  p.skillsText = d.skills || p.skillsText || '';
+                  p.background = d.background || '';
+                  p.draft = null; p.createStatus = 'übernommen'; p.createComment = ''; p.createOpen = false;
+                  addLog(`Charakter von ${p.name} übernommen: ${p.character}`, 'note');
+                  await saveSes(); draw();
+                },
+              }, '✔ Übernehmen'),
+              h('button', {
+                class: 'btn small', type: 'button', 'data-act': 'draft-return',
+                onclick: async () => {
+                  p.createStatus = 'zurückgegeben'; p.createComment = comment.value.trim(); p.createOpen = true;
+                  await saveSes(); draw();
+                },
+              }, '↩ Zurückgeben'))));
+        }
       }
     };
     liveUi.onPlayers = (m) => { claims = m; if (panel.isConnected) draw(); };
@@ -505,6 +625,52 @@ export async function render(main, [id, tabParam], ctx) {
   // ---------------------------------------------------------------- Spielbrett
   if (tab === 'board') {
     const cfg = live.getConfig();
+    const fogCard = (b) => {
+      let fog = fogFor(b.imageId);
+      const save = () => { ses.room.fog = ses.room.fog || {}; ses.room.fog[b.imageId] = fog; };
+      const push = debounce(async () => { save(); try { await boardPush(); } catch (e) { toast(`Spielbrett: ${live.friendlyError(e)}`, 'err', 6000); } }, 250);
+      const info = h('span', { class: 'muted small', 'data-fog-count': '1' });
+      const img = h('img', { alt: '' });
+      getImageUrl(b.imageId).then((u) => { if (u) img.src = u; });
+      const canvas = h('canvas', { 'aria-label': 'Nebel bearbeiten', 'data-fog-canvas': '1' });
+      const wrap = h('div', { class: 'fogwrap' }, img, canvas);
+      const paint = () => {
+        drawFog(canvas, fog, { opacity: 0.62, grid: true });
+        info.textContent = fog.on ? `${revealedCount(fog)} von ${fog.cols * fog.rows} Feldern aufgedeckt` : 'Nebel ist aus: Die Karte ist komplett sichtbar.';
+      };
+      img.addEventListener('load', paint);
+      let painting = null;
+      const at = (e) => { const r = canvas.getBoundingClientRect(); return cellOf(fog, e.clientX - r.left, e.clientY - r.top, r.width, r.height); };
+      canvas.addEventListener('pointerdown', (e) => {
+        if (!fog.on) return;
+        e.preventDefault();
+        canvas.setPointerCapture(e.pointerId);
+        const i = at(e);
+        painting = fog.bits[i] === '1' ? '0' : '1';
+        fog = { ...fog, bits: setBit(fog.bits, i, painting === '1') };
+        paint(); push();
+      });
+      canvas.addEventListener('pointermove', (e) => {
+        if (!painting) return;
+        const i = at(e);
+        if (fog.bits[i] !== painting) { fog = { ...fog, bits: setBit(fog.bits, i, painting === '1') }; paint(); push(); }
+      });
+      const stop = () => { painting = null; };
+      canvas.addEventListener('pointerup', stop); canvas.addEventListener('pointercancel', stop);
+      const sizeSel = h('select', { 'aria-label': 'Rastergröße', 'data-fog-size': '1' }, FOG_SIZES.map(([c, r]) => h('option', { value: `${c}x${r}`, selected: c === fog.cols && r === fog.rows }, `${c} × ${r} Felder`)));
+      sizeSel.addEventListener('change', () => { const [c, r] = sizeSel.value.split('x').map(Number); fog = { ...newFog(c, r), on: fog.on }; paint(); push(); });
+      const card = h('div', { class: 'card fogpanel', 'data-fogcard': '1' },
+        h('h3', {}, '🌫️ Nebel des Krieges'),
+        h('p', { class: 'muted small' }, 'Aktiv: Die Spieler sehen nur aufgedeckte Felder. Tippe oder wische über die Vorschau, um Felder aufzudecken oder wieder zu verdecken.'),
+        h('div', { class: 'row gap wrap' },
+          h('label', { class: 'inline' }, h('input', { type: 'checkbox', 'data-fog-on': '1', checked: fog.on, onchange: (e) => { fog = { ...fog, on: e.target.checked }; paint(); push(); } }), ' Nebel aktiv'),
+          sizeSel,
+          h('button', { class: 'btn small', type: 'button', 'data-act': 'fog-reveal-all', onclick: () => { fog = { ...fog, bits: allBits(fog, true) }; paint(); push(); } }, 'Alles aufdecken'),
+          h('button', { class: 'btn small', type: 'button', 'data-act': 'fog-cover-all', onclick: () => { fog = { ...fog, bits: allBits(fog, false) }; paint(); push(); } }, 'Alles verdecken')),
+        info, wrap);
+      requestAnimationFrame(paint);
+      return card;
+    };
     const draw = () => {
       clear(panel);
       if (!cfg) {
@@ -536,6 +702,7 @@ export async function render(main, [id, tabParam], ctx) {
         h('label', { class: 'inline' },
           h('input', { type: 'checkbox', 'data-act': 'board-auto', checked: !!ses.room.boardAuto, onchange: async (e) => { ses.room.boardAuto = e.target.checked; await saveSes(); } }),
           ' Bei Szenenwechsel automatisch die erste Karte der neuen Szene zeigen')));
+      if (b && b.mode === 'image') panel.appendChild(fogCard(b));
       const order = [...adv.scenes].sort((x, y) => (x.id === ses.currentSceneId ? -1 : 0) - (y.id === ses.currentSceneId ? -1 : 0));
       let any = false;
       for (const sc of order) {

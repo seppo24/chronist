@@ -8,7 +8,7 @@ Empfehlung: Alles einmal am **Windows-PC** und die mit 📱 markierten Punkte zu
 
 - [ ] **T01** Die Seite öffnet sich über die GitHub-Pages-Adresse ohne Fehlermeldung, oben steht „Chronist“.
 - [ ] **T02** 📱 Die App lässt sich installieren (Chrome-Menü → App installieren) und startet danach als eigenes Fenster/Symbol.
-- [ ] **T03** Unten (Startseite) steht die Versionsnummer 0.5.0, und unter Einstellungen → App steht dieselbe.
+- [ ] **T03** Unten (Startseite) steht die Versionsnummer 0.7.0, und unter Einstellungen → App steht dieselbe.
 - [ ] **T04** 📱 Das Layout passt auf das Handy: kein seitliches Verrutschen, Schaltflächen gut antippbar.
 - [ ] **T05** Ohne API-Key erscheint auf der Startseite der Hinweis „Für die Entwicklung … fehlt noch dein API-Key“.
 
@@ -180,6 +180,55 @@ Vorbereitung: Firestore-Regeln wie in Admin-Anleitung C2 aktualisieren. Mindeste
 - [ ] **T137** Spielbrett-Tablet neu laden: Es zeigt wieder die zuletzt freigegebene Karte.
 - [ ] **T138** „Tablets abschalten“: Spielbrett zeigt „Spielraum nicht gefunden“, in der Firebase-Konsole sind die Einträge unter `rooms` weg.
 - [ ] **T139** Mit alten Regeln (nur zum Test): verständliche Fehlermeldung statt Absturz.
+
+## M · Tablet-Interaktion (neu in 0.6.0)
+
+Vorbereitung: Spieler-Tablet verbunden (Abschnitt K). Ein Regelwerk mit Grundwerten (min/max) und Vorrat. Für T148 eine Szene mit Würfel-Bedingung.
+
+- [ ] **T140** Am Tablet erscheint der Block „Würfeln“ mit Hauptwurf, W4 bis W100 und Eingabefeld. Ein Wurf zeigt das Ergebnis groß.
+- [ ] **T141** Beim Spielleiter steht der Wurf im Protokoll („… würfelt …“), genau einmal.
+- [ ] **T142** Ungültiger Ausdruck (z. B. „Quatsch“) zeigt eine Fehlermeldung statt abzustürzen.
+- [ ] **T143** Tab „📱 Tablets“: Haken „Spieler dürfen am Tablet würfeln“ entfernen → der Würfelblock verschwindet am Tablet; wieder setzen → er erscheint.
+- [ ] **T144** Haken „Spieler dürfen ihre Vorräte selbst ändern“ setzen → am Tablet erscheinen − und + an den Balken. Mehrfach schnell tippen: Der Wert springt nicht zurück.
+- [ ] **T145** Die Änderung erscheint beim Spielleiter (Tab 👥 Spieler) und im Protokoll.
+- [ ] **T146** „✏️ Erschaffung erlauben“ bei einem Spieler: Am Tablet erscheint „Charakter erschaffen“.
+- [ ] **T147** Der Assistent: Name, Werte (Pool wird angezeigt, nicht überziehbar, Min/Max beachtet), Fertigkeiten, Hintergrund. Ohne Namen lässt sich nicht einreichen.
+- [ ] **T148** Eingereicht: Beim Spielleiter erscheint die Karte „📝 Entwurf von …“. „↩ Zurückgeben“ mit Anmerkung → Das Tablet zeigt die Anmerkung, der Entwurf ist vorausgefüllt.
+- [ ] **T149** „✔ Übernehmen“: Name, Werte, Fertigkeiten, Hintergrund stehen beim Spieler und auf dem Bogen; die Erschaffung ist danach geschlossen.
+- [ ] **T150** Szene mit Würfel-Bedingung: „📱 Am Tablet würfeln lassen“ → Das Tablet zeigt die Aufforderung, ein Tipp würfelt, die Aufforderung verschwindet, die Bedingung ist erfüllt bzw. nicht (Szene frei/gesperrt).
+- [ ] **T151** Tablets und Spielleiter-Gerät: Auch nach Neuladen der Spielleiter-Seite werden Würfe nicht doppelt protokolliert.
+- [ ] **T152** 📱 Bedienung am Tablet: − / + und Würfelknöpfe sind groß genug, Wizard bequem bedienbar (auch quer).
+
+## N · Nebel des Krieges (neu in 0.7.0)
+
+Vorbereitung: Spielbrett wie in Abschnitt L, eine Karte wird gezeigt.
+
+- [ ] **T153** Tab „🗺️ Spielbrett“: Bei einer gezeigten Karte erscheint der Bereich „🌫️ Nebel des Krieges“ mit Vorschau. Standard: aus („Nebel ist aus …“), die Karte ist am Spielbrett komplett sichtbar.
+- [ ] **T154** „Nebel aktiv“ anhaken: Das Spielbrett wird schwarz, in der Vorschau liegt ein abgedunkeltes Raster darüber.
+- [ ] **T155** In der Vorschau ein Feld antippen: Es wird am Spielbrett aufgedeckt, die anderen bleiben schwarz. Der Zähler („1 von 96 Feldern aufgedeckt“) stimmt.
+- [ ] **T156** Mit dem Finger über mehrere Felder wischen: Sie werden der Reihe nach aufgedeckt. Ein aufgedecktes Feld erneut antippen verdeckt es wieder.
+- [ ] **T157** Das Spielbrett flackert beim Aufdecken nicht (das Bild bleibt stehen, nur der Nebel ändert sich).
+- [ ] **T158** „Alles aufdecken“ und „Alles verdecken“ funktionieren.
+- [ ] **T159** Andere Rastergröße wählen: Nebel beginnt von vorn.
+- [ ] **T160** Andere Karte zeigen und wieder die erste: Der Nebel dieser Karte ist noch so, wie du ihn verlassen hast.
+- [ ] **T161** Spielbrett-Tablet: Karte antippen (vergrößern) → Nebel liegt weiter passgenau über der Karte. Nach Drehen des Tablets (hoch/quer) ebenfalls.
+- [ ] **T162** Seite des Spielleiters neu laden: Der Nebel-Stand ist noch da.
+
+## O · Töne und Effekte (neu in 0.8.0)
+
+Vorbereitung: Tablets zugeschaltet, ein Spieler-Tablet und das Spielbrett-Tablet geöffnet, Gerätelautstärke an, Stumm-Schalter am Gerät aus.
+
+- [ ] **T163** Spieler-Tablet und Spielbrett zeigen unten rechts „🔊 Töne aktivieren“. Antippen: Gong ertönt, Knopf zeigt „🔊 Ton an“.
+- [ ] **T164** Tab „📱 Tablets“: Bereich „🔊 Töne und Effekte“ mit neun Knöpfen, Empfänger-Auswahl und Textfeld.
+- [ ] **T165** Empfänger „Alle“, Effekt „Alarm“: Beide Tablets spielen den Alarm und blitzen rot, jeweils nur einmal.
+- [ ] **T166** Empfänger „Nur Spielbrett“ mit Text „Hinterhalt!“, Effekt „Gong“: Nur das Spielbrett läutet und zeigt den Text groß; das Spieler-Tablet bleibt still.
+- [ ] **T167** Empfänger einzelner Spieler, Effekt „Zauber“: Nur dessen Tablet reagiert, das Spielbrett nicht.
+- [ ] **T168** Spieler dürfen Vorräte ändern: Am Tablet Lebenspunkte − tippen → Treffer-Klang und roter Blitz; + tippen → Heil-Klang und grüner Blitz.
+- [ ] **T169** Lebenspunkte bis 0 senken: Niedergeschlagen-Effekt (dunkel, tiefer Ton).
+- [ ] **T170** Am Tablet würfeln: Würfelrasseln.
+- [ ] **T171** Tablet-Seite neu laden: Der letzte Effekt wird nicht noch einmal abgespielt. Danach muss der Ton wieder aktiviert werden (ein Tipp genügt).
+- [ ] **T172** Knopf „🔊 Ton an“ nochmal tippen: Ton aus („🔇 Ton aus“), Effekte bleiben still, der Blitz erscheint weiterhin.
+- [ ] **T173** Tablets abschalten: Keine Fehlermeldung; neuer Raum später funktioniert wieder.
 
 ## I · Gefühl & Auffälligkeiten
 
